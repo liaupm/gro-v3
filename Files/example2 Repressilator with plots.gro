@@ -1,0 +1,47 @@
+include gro3
+
+//the well-known Repressilator circuit, with a different colour reporting the presence of each of the 3 repressors and real-time plots
+
+//params
+t_act := 20.0;
+t_act_var := 2.0;
+t_deg := 2.0;
+t_deg_var := 2.0;
+
+global_params([ seed := 1234, theme := dark_theme, show_plots := true ]);
+grid([ name := "grid_A", ini_grid_size := 2000 ]);
+
+//---biocircuits
+protein ([ name := "prot_A", times := {-t_deg, t_act}, times_var := { t_deg_var, t_act_var } ]);
+protein ([ name := "prot_B", times := {-t_deg, t_act}, times_var := { t_deg_var, t_act_var } ]);
+protein ([ name := "prot_C", times := {-t_deg, t_act}, times_var := { t_deg_var, t_act_var } ]);
+
+bgate([ name := "ga_notA", input := {"-prot_A"} ]);
+bgate([ name := "ga_notB", input := {"-prot_B"} ]);
+bgate([ name := "ga_notC", input := {"-prot_C"} ]);
+
+operon([ name := "op_A", gate := "ga_notC", output := {"prot_A"} ]);
+operon([ name := "op_B", gate := "ga_notA", output := {"prot_B"} ]);
+operon([ name := "op_C", gate := "ga_notB", output := {"prot_C"} ]);
+
+bplasmid([ name := "p_ABC", operons := { "op_A", "op_B", "op_C" } ]);
+
+
+//---world control
+cell_type([ name := "cell_ABC", strain := "_str_wt", plasmids := {"p_ABC"}, molecules := {"prot_A"} ]);
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 100.0 ]);
+
+
+//---visuals
+bgate([ name := "ga_yesA", input := {"prot_A"} ]);
+bgate([ name := "ga_yesB", input := {"prot_B"} ]);
+bgate([ name := "ga_yesC", input := {"prot_C"} ]);
+
+cell_colour([ name := "ccol_green", gate := "ga_yesA", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "ga_yesB", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "ga_yesC", rgb := _blue ]);
+
+cells_plot([ name := "cplt_A", elem_fields := { "prot_A" }, stats := {"avg"} ]);
+cells_plot([ name := "cplt_B", elem_fields := { "prot_B" }, stats := {"avg"} ]);
+cells_plot([ name := "cplt_C", elem_fields := { "prot_C" }, stats := {"avg"} ]);
+cells_plot([ name := "cplt_all", elem_fields := { "prot_A", "prot_B", "prot_C" }, stats := {"avg"} ]);

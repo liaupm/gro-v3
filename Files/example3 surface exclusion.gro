@@ -1,0 +1,74 @@
+// ***INITIAL PARAMETERS***
+include gro3
+
+//cells with surface exclusion against the transmission system act as a physical barrier for the transmission of a conjugative plasmid
+
+//params
+conjRate := 0.01;
+conjRateVar := 0.0;
+donorAmount := 10.0;
+recipientAmount := 100.0;
+eexAmount := 50.0;
+
+global_params([ seed := 133087, theme := dark_theme ]);
+
+grid([ name := "grid_A", ini_grid_size := 500 ]);
+
+
+
+//---biocircuits
+bgate([ name := "ga_notEex", input := {"-cell_eex"} ]);
+
+pilus([ name := "pil_A"
+	, donor_gate := "_ga_true"
+	, recipient_gate := "ga_notEex"
+	, max_rate := conjRate
+	, max_rate_var := conjRateVar
+]);
+
+oriT([ name := "ot_A", pilus := "pil_A" ]);
+
+plasmid([ name := "p_A", oriTs := {"ot_A"} ]);
+
+
+
+//---world control
+strain([ name := "str_A"
+	, base_growth_rate := 0.01
+	, base_growth_rate_var := 0.0
+]);
+
+cell_type([ name := "cell_donor", strain := "str_A", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_recipient", strain := "str_A" ]);
+cell_type([ name := "cell_eex", strain := "str_A" ]);
+
+
+cell_placer([ name := "cp_donor"
+	, cell_types := {"cell_donor"}
+	, amount := donorAmount 
+	, coords := [ x := 0.0, y := 0.0, r := 0.0 ]
+]);
+
+cell_placer([ name := "cp_recipient"
+	, cell_types := {"cell_recipient"}
+	, amount := recipientAmount
+	, coords := [ x := 0.0, y := 0.0, r := 1.0 ]
+]);
+
+cell_placer([ name := "cp_eex"
+	, cell_types := {"cell_eex"}
+	, amount := eexAmount
+	, coords := [ x := 0.0, y := 0.0, r := 1.0 ]
+]);
+
+
+//---visuals
+bgate([ name := "ga_pA", input := {"p_A"} ]);
+cell_colour([ name := "ccol_green", gate := "ga_pA", rgb := _green ]);
+
+bgate([ name := "ga_donor", input := {"cell_donor"} ]);
+cell_colour([ name := "ccol_red", gate := "ga_donor", rgb := _red ]);
+
+bgate([ name := "ga_eex", input := {"cell_eex"} ]);
+cell_colour([ name := "ccol_blue", gate := "ga_eex", rgb := _blue ]);
+
