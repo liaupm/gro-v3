@@ -1,0 +1,25 @@
+Attributions disclosure for gro 3.0:
+
+The gro software (referred to as gro 1) was initially developed by Eric Klavins at the Klavins Lab from Washington University under the WU open-source license [https://klavinslab.org/].
+
+A subsequent version (referred to as gro 2) was developed by Martin Gutiérrez and colleagues at the LIA group of Universidad Politécnica de Madrid. [http://www.lia.upm.es/].
+
+The third iteration of the software (gro 3.0) has been developed, starting from gro 2, with significant modifications. While introducing major changes, certain ideas, designs, and code have been reused from the prior version. Specific attributions are detailed below:
+
+- The ccl library has been utilized as an external auxiliary library without modification.
+
+- The software's name, main GUI design, and architecture related to the main simulation loop and graphical features inherit from gro 1. The GUI has undergone extension, and all pertinent code has been extensively refactored and extended in gro 3.0 by Elena Núñez Berrueco at LIA-UPM.
+
+- All new classes in the software core (gro-master directory) have been developed by Elena Núñez Berrueco at LIA-UPM.
+
+- The CellEngine library, employed for cell physics, has been reused from gro 2 with minimal modification. It was developed by Luis Enrique Múñoz at LIA-UPM.
+
+- The Utility, CellPro, and cellsignals modules have been created from scratch by Elena Núñez Berrueco at LIA-UPM. While no code has been reused, CellPro and cellsignals inherit some ideas from the libraries of the same name in gro 2.
+
+- The QCustomPlot library is used unaltered for real-time plots in the GUI, and its original license is provided under its directory.
+
+This attributions disclosure ensures transparency regarding the origin and contributions to gro 3.0, acknowledging the work of all involved institutions and contributors.
+
+For further inquiries, please contact:
+
+Elena Núñez Berrueco at LIA-UPM [elena.nunez@upm.es]
