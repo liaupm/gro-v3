@@ -1,0 +1,185 @@
+//////////////////////////////////////////////////////////////////////////////////////
+//
+// gro is protected by the UW OPEN SOURCE LICENSE, which is summaraize here.
+// Please see the file LICENSE.txt for the complete license.
+//
+// THE SOFTWARE (AS DEFINED BELOW) AND HARDWARE DESIGNS (AS DEFINED BELOW) IS PROVIDED
+// UNDER THE TERMS OF THIS OPEN SOURCE LICENSE (“LICENSE”).  THE SOFTWARE IS PROTECTED
+// BY COPYRIGHT AND/OR OTHER APPLICABLE LAW.  ANY USE OF THIS SOFTWARE OTHER THAN AS
+// AUTHORIZED UNDER THIS LICENSE OR COPYRIGHT LAW IS PROHIBITED.
+//
+// BY EXERCISING ANY RIGHTS TO THE SOFTWARE AND/OR HARDWARE PROVIDED HERE, YOU ACCEPT AND
+// AGREE TO BE BOUND BY THE TERMS OF THIS LICENSE.  TO THE EXTENT THIS LICENSE MAY BE
+// CONSIDERED A CONTRACT, THE UNIVERSITY OF WASHINGTON (“UW”) GRANTS YOU THE RIGHTS
+// CONTAINED HERE IN CONSIDERATION OF YOUR ACCEPTANCE OF SUCH TERMS AND CONDITIONS.
+//
+// TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+//
+//
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// * PARSER * ///////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+//================================== general =========================================
+internal unit distribution ([ ... ]) "distribution";
+internal unit global_params ([ ... ]) "global_params";
+
+//================================== cell logic ======================================
+internal unit randomness ([ ... ]) "randomness";
+internal unit function ([ ... ]) "math_function";
+internal unit bgate ([ ... ]) "bgate";
+internal unit b_gate ([ ... ]) "bgate";
+internal unit qgate ([ ... ]) "qgate";
+internal unit q_gate ([ ... ]) "qgate";
+internal unit historic ([ ... ]) "historic";
+internal unit ode ([ ... ]) "ode";
+internal unit cell_colour ([ ... ]) "cell_colour";
+internal unit cell_color ([ ... ]) "cell_colour";
+
+//================================== cell bio ========================================
+internal unit molecule ([ ... ]) "molecule";
+internal unit protein ([ ... ]) "molecule";
+internal unit regulation ([ ... ]) "regulation";
+internal unit promoter ([ ... ]) "regulation";
+internal unit operon ([ ... ]) "operon";
+internal unit flux ([ ... ]) "flux";
+
+internal unit pilus ([ ... ]) "pilus";
+internal unit oriT ([ ... ]) "orit";
+internal unit orit ([ ... ]) "orit";
+internal unit ori_t ([ ... ]) "orit";
+
+internal unit oriV ([ ... ]) "oriv";
+internal unit oriv ([ ... ]) "oriv";
+internal unit ori_v ([ ... ]) "oriv";
+internal unit copy_control ([ ... ]) "copy_control";
+internal unit partition ([ ... ]) "partition";
+internal unit partition_system ([ ... ]) "partition";
+internal unit mutation ([ ... ]) "mutation";
+internal unit mutation_process ([ ... ]) "mutation_process";
+
+internal unit plasmid ([ ... ]) "bplasmid";
+internal unit bplasmid ([ ... ]) "bplasmid";
+internal unit b_plasmid ([ ... ]) "bplasmid";
+internal unit qplasmid ([ ... ]) "qplasmid";
+internal unit q_plasmid ([ ... ]) "qplasmid";
+internal unit strain ([ ... ]) "strain";
+internal unit cell_type ([ ... ]) "cell_type";
+
+//================================== medium ==========================================
+internal unit signal ([ ... ]) "signal";
+internal unit grid ([ ... ]) "grid";
+
+//================================== simulation ======================================
+internal unit timer ([ ... ]) "timer";
+internal unit checkpoint ([ ... ]) "checkpoint";
+internal unit pop_stat ([ ... ]) "population_stat";
+internal unit population_stat ([ ... ]) "population_stat";
+internal unit pop_function ([ ... ]) "population_function";
+internal unit population_function ([ ... ]) "population_function";
+internal unit pop_gate ([ ... ]) "population_bgate";
+internal unit population_gate ([ ... ]) "population_bgate";
+internal unit pop_bgate ([ ... ]) "population_bgate";
+internal unit population_bgate ([ ... ]) "population_bgate";
+internal unit pop_qgate ([ ... ]) "population_qgate";
+internal unit population_qgate ([ ... ]) "population_qgate";
+
+internal unit cell_placer ([ ... ]) "cell_placer";
+internal unit cells_placer ([ ... ]) "cell_placer";
+internal unit cell_plating ([ ... ]) "cell_plating";
+internal unit cells_plating ([ ... ]) "cell_plating";
+internal unit signal_placer ([ ... ]) "signal_placer";
+internal unit signals_placer ([ ... ]) "signal_placer";
+
+internal unit snapshot ([ ... ]) "snapshot";
+internal unit out_file ([ ... ]) "cells_file";
+internal unit cells_file ([ ... ]) "cells_file";
+internal unit plot ([ ... ]) "cells_plot";
+internal unit cells_plot ([ ... ]) "cells_plot";
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// * PREDEFINED * ///////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+//================================== visuals ==========================================
+//colours
+_green := { 0.0, 1.0, 0.0 };
+_red := { 1.0, 0.0, 0.0 };
+_blue := { 0.0, 0.0, 1.0 };
+
+_yellow := { 1.0, 1.0, 0.0 };
+_magenta := { 1.0, 0.0, 1.0 };
+_cyan := { 0.0, 1.0, 1.0 };
+
+_black := { 0.0, 0.0, 0.0 };
+_white := { 1.0, 1.0, 1.0 };
+
+
+// themes
+_dark_theme := 
+[
+	background := "#000000",
+	cell_outline := "#444444",
+	cell_selected := "#880000",
+	message := "#ffffff",
+	mouse := "#ffffff"
+];
+
+_bright_theme := 
+[
+	background := "#ffffff",
+	cell_outline := "#777777",
+	cell_selected := "#ff0000",
+	message := "#999999",
+	mouse := "#000000"
+];
+
+
+//================================== math ==========================================
+_pi := 3.1415927;
+_minus_inf := 1.0E-38;
+_inf := 1.0E+38;
+
+internal real sqrt ( real ) "sqrt";
+internal int rand ( int ) "rand";
+internal unit srand ( int ) "srand"; // seeds with the time if argument is <= 0
+
+internal real sin ( real ) "sin";
+internal real cos ( real ) "cos";
+internal real tan ( real ) "tan";
+
+internal real asin ( real ) "asin";
+internal real acos ( real ) "acos";
+internal real atan ( real, real ) "atan";
+
+internal real sinh ( real ) "sinh";
+internal real cosh ( real ) "cosh";
+internal real tanh ( real ) "tanh";
+
+internal real asinh ( real ) "asinh";
+internal real acosh ( real ) "acosh";
+internal real atanh ( real ) "atanh";
+
+internal real log ( real ) "log";
+internal real log10 ( real )"log10";
+
+internal real ceil ( real ) "ceil";
+internal real floor ( real ) "floor";
+
+
+//========================== standard functions =====================================
+internal unit cprint ( ... ) "cprint"; // prints to standard out
+internal unit skip () "skip";
+internal unit exit () "exit";
+internal int atoi ( string ) "atoi";
+internal real atof ( string ) "atof";
+internal string tostring ( 'a ) "tostring";
+internal int length ( 'a list ) "length";
+internal 'b list map_aux ( 'a -> 'b, 'a list ) "map";
+internal real sumlist_aux ( 'a list ) "sumlist_aux";
+fun map f L . map_aux ( f, L ); 
