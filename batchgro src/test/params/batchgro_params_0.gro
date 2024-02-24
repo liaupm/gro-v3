@@ -1,0 +1,4 @@
+t_act := 2.0;
+t_deg := 15;
+to_test := 1.0;
+folderName := "batch_snaps_0";
