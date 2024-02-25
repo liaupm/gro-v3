@@ -1,0 +1,35 @@
+/* To test the synthesis of molecules from operons, with variability in the syntehsis time. Fields: times and time_vars
+To test:
+ - Use different synthesis times and variabilities
+ - Check that the time perfectly matches the parameter when deterministic
+ - Notice that the default automatically assigned randomness uses inertia and inheritance features
+*/
+
+include gro3
+
+//params
+t_act := 80.0;
+t_act_var := 10.0;
+t_deg := 10.0;
+t_deg_var := 0.0;
+
+global_params([ seed := 1234 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", plasmids := {"p_A"} ]);
+
+//---gene expression
+protein([ name := "prot_A", times := { -t_deg, t_act }, times_var := { t_deg_var, t_act_var } ]);
+operon([ name := "op_A", output := {"prot_A"} ]);
+bplasmid([ name := "p_A", operons := { "op_A" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ r := 50.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "prot_A", rgb := _green ]);

@@ -1,0 +1,113 @@
+/*
+*/
+
+include gro3
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", strain := "_str_slow" ]);
+cell_type([ name := "cell_B", strain := "_str_slow" ]);
+cell_type([ name := "cell_emitter", strain := "str_A", plasmids := {"bp_phage"} ]);
+
+//---plasmids
+qplasmid([ name := "bp_phage"
+	, operons := {"op_phage"}
+	, orivs := {"ov_plasmid", "ov_phage"}
+	, copy_controls := {"cc_plasmid", "cc_phage"} 
+	, oriTs := {"ot_plasmid"}
+]);
+
+
+//---gene expression
+molecule([ name := "mol_virion", times := { -5.0, 1.0 } , times_var := { 0.0, 0.0 } ]);
+molecule([ name := "mol_viralProt", times := { -20.0, 20.0 } , times_var := { 0.0, 0.0 } ]);
+
+operon([ name := "op_phage", output := {"mol_viralProt"} ]);
+
+
+//---metabolism
+signal([ name := "s_virion", kdiff := 0.3, kdeg := 0.05, colour := _magenta, colour_sat := 1.0 ]);
+
+flux([ name := "flux_virion_in"
+	, gate := "bga_not_virion"
+	, metabolite := "s_virion"
+	, output := {"mol_virion"}
+	, amount := -0.1
+	, threshold := 0.5
+]);
+
+bgate([ name := "bga_viralProt_emit" , input := { "mol_viralProt", "-cell_B" } ]);
+flux([ name := "flux_virion_out", gate := "bga_viralProt_emit", metabolite := "s_virion", amount := 1.0 ]);
+
+
+//---mutations
+mutation([ name := "mut_phage", plasmids := { "bp_phage" } , amounts := { 1 } ]);
+
+bgate([ name := "bga_eex" , input := {"mol_virion", "-bp_phage"} ]);
+function([ name := "fun_constRate", type := "const", params := { 0.1 } ]);
+mutation_process([ name := "mutp_phage"
+	, gate := "bga_eex"
+	, mutations := {"mut_phage"}
+	, rate_fun := "fun_constRate"
+]);
+
+
+//---replication
+//as a phage
+bgate([ name := "bga_phage_A", input := {"bp_phage", "cell_A" } ]);
+copy_control([ name := "cc_phage", gate := "bga_phage_A", w := 0.1 ]);
+
+oriv([ name := "ov_phage"
+	, gate := "bga_phage_A"
+	, copy_controls := {"cc_phage"}
+	, vmax := 1.0E+2
+	, w := 0.1
+]);
+
+//as a plasmid
+bgate([ name := "bga_phage_B", input := {"bp_phage", "cell_B" } ]);
+copy_control([ name := "cc_plasmid", gate := "bga_phage_B", w := 0.1 ]);
+
+oriv([ name := "ov_plasmid"
+	, gate := "bga_phage_B"
+	, copy_controls := {"cc_plasmid"}
+	, vmax := 1.0E+3
+	, w := 0.1
+]);
+
+
+//---conjugation
+bgate([ name := "bga_not_virion" , input := {"-mol_virion"} ]);
+pilus([ name := "pil_B", donor_gate := "bga_phage_B", recipient_gate := "bga_not_virion", max_rate := { 0.01, 0.0 } ]);
+oriT([ name := "ot_plasmid", pilus := "pil_B" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A"
+	, cell_types := { "cell_A", "cell_B" }
+	, cell_probs := { 0.5, 0.5 } 
+	, mix := true
+	, amount := 100.0
+	, coords := [ x := 0.0, y := 0.0, r := 100.0 ]
+]);
+
+cell_placer([ name := "cp_emitter", cell_types := {"cell_emitter"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+bgate([ name := "bga_no_phage_A", input := { "-bp_phage", "cell_A" } ]);
+bgate([ name := "bga_no_phage_B", input := { "-bp_phage", "cell_B" } ]);
+
+cell_colour([ name := "ccol_dark_green", gate := "bga_no_phage_A", rgb := _green, intensity := 0.2 ]);
+cell_colour([ name := "ccol_dark_red", gate := "bga_no_phage_B", rgb := _red, intensity := 0.2 ]);
+cell_colour([ name := "ccol_green", gate := "bga_phage_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "bga_phage_B", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "cell_emitter", rgb := _blue ]);
+
+//---
+cells_plot([ name := "cplt_q", fields := { "bp_phage" } , stats := {"avg"} ]);
+cells_plot([ name := "cplt_b", fields := { "bga_phage_A", "bga_phage_B" } , stats := {"avg"} ]);

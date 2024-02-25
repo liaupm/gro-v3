@@ -1,0 +1,91 @@
+/*To test the eclipse period after plasmid replication and the eclipse markers of qplasmids, orivs and partitions. Multiple plot are used to test that the number of active copies and the number of eclipse copies matches for this three elements, according to the multiplicity.  
+
+To test:
+ - Change the duration of the eclipse, deterministic, stochastic
+ - Change the multiplicity of the oriv and check that the number of copies and eclipse markers is correct
+ - Uncomment different plots to compare different elements
+ - For detail on the eclipse duration, use a single cell with a single initial copy
+*/
+
+include gro3
+
+copyNum := 20.0;
+iniCopies := 1.0;
+
+//autoVol := "none";
+autoVol := "division";
+
+global_params([ seed := 133087, show_plots := true, sensitivity := 0.0001 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_wt", growth_rate := { 0.0, 0.0 }, ini_vol := 2.0 ]);
+
+cell_type([ name := "cell_A"
+	, strain := "str_wt"
+	, qplasmids := {"qp_A"} 
+	, qplasmid_amounts := { iniCopies }
+	, qplasmids_as_concs := false
+]);
+
+
+//---replication
+copy_control([ name := "cc_A", gate := "_ga_true", w := 0.00001 ]);
+
+function([ name := "fun_qpAall", input := { "qp_A", "qp_A_eclipse" }, auto_vol := autoVol  ]);
+function([ name := "fun_ovAall", input := { "ov_A", "ov_A_eclipse" }, auto_vol := autoVol ]);
+qgate([ name := "qga_copyNum_A", input := "fun_ovAall", value := copyNum, operator := "<" ]);
+
+oriv([ name := "ov_A"
+	, copy_controls := {"cc_A"}
+	, gate := "qga_copyNum_A"
+	, vmax := 1.0
+	, w := 0.1
+	, eclipse_marker := "ov_A_eclipse"
+	, eclipse := true
+]);
+
+partition_system([ name := "part_A", gate := "_ga_true", fraction := { 0.5, 0.0 }, p := 0.5, vol_scaling := true ]);
+
+qplasmid([ name := "qp_A"
+	, partition_system := "part_A"
+	, oriVs := {"ov_A"}
+	, copy_controls := {"cc_A"}
+	, eclipse := { 5.0, 0.5 }
+	, eclipse_marker := "qp_A_eclipse"
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 1.0, coords := [ r := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpA", input := {"qp_A"}, auto_vol := autoVol ]);
+function([ name := "fun_logPlas", input := {"fun_qpA"}, type := "log", params := {2.0}, auto_vol := "none" ]);
+cell_colour([ name := "ccol_green", gate := "qp_A", target := "fun_logPlas", rgb := _green, scale := 0.5 ]);
+
+function([ name := "fun_qpA_eclipse", input := {"qp_A_eclipse"}, auto_vol := autoVol ]);
+function([ name := "fun_logEclipse", input := {"fun_qpA_eclipse"}, type := "log", params := {2.0}, auto_vol := "none" ]);
+cell_colour([ name := "ccol_red", gate := "qp_A_eclipse", target := "fun_logEclipse", scale := 0.5, rgb := _red ]);
+
+//---
+//cells_plot([ name := "cplt_plasRange", fields := { "fun_qpAall" } , stats := {"avg", "min", "max"} ]);
+cells_plot([ name := "cplt_ovRange", fields := { "fun_ovAall" } , stats := {"avg", "min", "max"} ]);
+//cells_plot([ name := "cplt_eclipseRange", fields := { "fun_qpA_eclipse" } , stats := {"avg", "min", "max"} ]);
+
+//cells_plot([ name := "cplt_plas", fields := { "fun_qpA", "fun_qpA_eclipse", "fun_qpAall" } , stats := {"avg"} ]);
+cells_plot([ name := "cplt_plasRaw", fields := { "qp_A", "qp_A_eclipse" } , stats := {"avg"} ]);
+
+function([ name := "fun_partA", input := {"part_A"}, auto_vol := autoVol ]);
+cells_plot([ name := "cplt_comp", fields := { "fun_qpA", "fun_ovA", "fun_partA" } , stats := {"max"} ]);
+
+function([ name := "fun_partA_eclipse", input := {"_part_A_eclipse"}, auto_vol := autoVol ]);
+cells_plot([ name := "cplt_compEclipse", fields := { "fun_qpA_eclipse", "fun_ovA_eclipse", "fun_partA_eclipse" } , stats := {"max"} ]);
+//cells_plot([ name := "cplt_compRaw", fields := { "qp_A_eclipse", "ov_A_eclipse", "_part_A_eclipse" } , stats := {"max"} ]);
+
+function([ name := "fun_ovA", input := {"ov_A"}, auto_vol := autoVol ]);
+function([ name := "fun_ovA_eclipse", input := {"ov_A_eclipse"}, auto_vol := autoVol ]);
+//cells_plot([ name := "cplt_oriV", fields := { "fun_ovA", "fun_ovA_eclipse", "fun_ovAall" } , stats := {"max"} ]);

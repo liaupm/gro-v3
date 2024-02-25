@@ -1,0 +1,36 @@
+/* To test the use of randomness with inheritance and inertia both for molecules (expresison times) and regulations (activation)
+*/
+
+include gro3
+global_params([ seed := 123242 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := 0.01, ini_vol := 2.35 ]);
+
+cell_type([ name := "cell_A"
+	, strain := "str_A"
+	, plasmids := {"p_A"}
+	//, molecules := {"mol_A"}
+]);
+
+
+//---gene expression
+randomness([ name := "rnd_A", dist_type := "normal", inheritance := 0.9, inertia := 0.9, sampling_time := 10.0 ]);
+randomness([ name := "rnd_reg", dist_type := "normal", inheritance := 0.9, inertia := 0.9 ]);
+
+molecule([ name := "mol_A", randomness := "rnd_A", times := {-50.0, 100.0} , times_var := { 0.0, 0.0} ]);
+
+regulation([ name := "reg_A", randomness := "rnd_reg", acti_on := {0.4, 0.5} ]);
+operon([ name := "op_A", regulation := "reg_A", output := {"mol_A"} ]);
+plasmid([ name := "p_A", operons := {"op_A"} ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);

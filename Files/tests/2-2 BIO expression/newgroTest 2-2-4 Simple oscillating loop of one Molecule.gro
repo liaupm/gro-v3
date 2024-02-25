@@ -1,0 +1,39 @@
+/* To test the conditional synthesis of molecules from operons. Fields: gate and output of operon; plasmids and molecules of cell_type
+A negative feedback loop of a single molecule and operon produces oscillations.
+To test:
+ - Use different synthesis and degradation times and variabilities
+ - Use a cell_type that starts with the molecule present and one that does not and check that they are synchronized in a complementary way when the activation and degradation times are the same and deterministic 
+*/
+
+
+include gro3
+
+//params
+t_act := 20.0;
+t_act_var := 2.0;
+t_deg := 30.0;
+t_deg_var := 3.0;
+
+global_params([ seed := 1234 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_B", plasmids := {"p_A"}, molecules := {"prot_A"} ]);
+
+//---gene expression
+molecule([ name := "prot_A", times := { -t_deg, t_act }, times_var := { t_deg_var, t_act_var } ]);
+bgate([ name := "ga_notA", input := { "-prot_A" } ]);
+operon([ name := "op_A", gate := "ga_notA", output := {"prot_A"} ]);
+bplasmid([ name := "p_A", operons := { "op_A" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A", "cell_B"}, mix := true, amount := 10.0 ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "prot_A", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "cell_B", rgb := _blue ]);

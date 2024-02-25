@@ -1,0 +1,49 @@
+/*To test the markers related to cell division: "_bm_division_vol" and "_em_division"
+Once the division size is reached, the cells wait for "mol_pass" to be produced. During that time they don't grow and the "_bm_division_vol" marker is on. The growth rate during that period is 0.
+On division, the "_em_division" marker is on for just one time step and that produces "mol_div". 
+Synchronized divisions to make it easier to test
+
+To test:
+ - Change the expression times of the proteins
+ - Change the division_gate
+ - Try unsynchronized
+*/
+
+include gro3
+
+selectedDivGate := "mol_pass";
+
+global_params([ seed := 133087, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", division_gate := selectedDivGate, growth_rate := 0.01, ini_vol := 1.7, division_vol := 3.14, division_fraction := 0.5 ]);
+cell_type([ name := "cell_A", strain := "str_A", plasmids := {"p_div"} ]);
+
+
+//---gene expression
+molecule([ name := "mol_div", times := {-10.0, 0.0001} ]);
+operon([ name := "op_div", gate := "_em_division", output := { "mol_div" } ]);
+
+molecule([ name := "mol_pass", times := {-0.1, 4.99} ]);
+operon([ name := "op_pass", gate := "_bm_division_vol", output := { "mol_pass" } ]);
+
+plasmid([ name := "p_div", operons := { "op_div", "op_pass" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_div", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "_em_division", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "_bm_division_vol", rgb := _blue ]);
+
+//---
+plot([ name := "plot_div", fields := { "_em_division", "mol_div" }, stats := "avg" ]);
+plot([ name := "plot_pass", fields := { "mol_pass", "_bm_division_vol" }, stats := "avg" ]);
+plot([ name := "plot_all", fields := { "_em_division", "mol_div", "mol_pass", "_bm_division_vol" }, stats := "avg" ]);
+plot([ name := "plot_gr", fields := { "_gr" }, stats := "avg" ]);

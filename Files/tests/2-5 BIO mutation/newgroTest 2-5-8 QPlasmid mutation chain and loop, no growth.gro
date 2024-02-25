@@ -1,0 +1,93 @@
+/*To test chains and loops of multiple mutations with qplasmids, in the absence of cell growth, division or plasmid replication. plasmids and amounts fields on mutation; gate, rate, rate_fun, mutations and mutations_probs fields of mutation_process
+To test:
+ - Change the mutation coefficients. The value of the qgate used as condition should match them for the expected behaviour. If the resulting balance is not 0, there is no equilibrium and the plasmids tend to either dissapear (<0) or increase forever (>). When there is equilibrium, big coefficients ins abs make big oscillations around it. Change the params of "fun_total" accordingly
+ - Change the rate# params to try different relations between the reactions or set one to 0 to break the loop
+ - Make the probability of "mut_CtoD" at "mutp_CtoA" not 0 to partially break the loop, gradually reducing the total number of plasmids in the ABC loop and increasing the sink plasmid D
+*/
+
+include gro3
+
+iniCopies := 100.0;
+rateA := 0.01;
+rateB := 0.01;
+rateC := 0.1;
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A"
+	, strain := "_str_nogrowth"
+	, qplasmids := {"qp_A", "qp_B", "qp_C" } 
+	, qplasmid_amounts := { iniCopies, 0.0, 0.0 }
+	, qplasmids_as_concs := false
+]);
+
+//---plasmids
+qplasmid([ name := "qp_A" ]);
+qplasmid([ name := "qp_B" ]);
+qplasmid([ name := "qp_C" ]);
+qplasmid([ name := "qp_D" ]);
+
+
+//---mutations
+mutation([ name := "mut_AtoB", plasmids := { "qp_A", "qp_B" }, amounts := { -10, 1 } ]);
+mutation([ name := "mut_BtoC", plasmids := { "qp_B", "qp_C" }, amounts := { -1, 1 } ]);
+mutation([ name := "mut_CtoA", plasmids := { "qp_C", "qp_A" }, amounts := { -1, 10 } ]);
+mutation([ name := "mut_CtoD", plasmids := { "qp_C", "qp_D" }, amounts := { -1, 10 } ]);
+
+//---
+function([ name := "fun_linearA", input := { "qp_A" }, type := "sum", params := { rateA }, auto_vol := "division" ]);
+qgate([ name := "qga_qpA", input := "qp_A", operator := ">=", value := 10.0 ]);
+mutation_process([ name := "mutp_AtoB"
+	, gate := "qga_qpA"
+	, rate_fun := "fun_linearA"
+	//, rate := rateA
+	, mutations := {"mut_AtoB"}
+]);
+
+//---
+function([ name := "fun_linearB", input := { "qp_B" }, type := "sum", params := { rateB }, auto_vol := "division" ]);
+qgate([ name := "qga_qpB", input := "qp_B", operator := ">=", value := 1.0 ]);
+mutation_process([ name := "mutp_BtoC"
+	, gate := "qp_B"
+	, rate_fun := "fun_linearB"
+	//, rate := rateB
+	, mutations := {"mut_BtoC"}
+]);
+
+//---
+function([ name := "fun_linearC", input := { "qp_C" }, type := "sum", params := { rateC }, auto_vol := "division" ]);
+qgate([ name := "qga_qpC", input := "qp_C", operator := ">=", value := 1.0 ]);
+mutation_process([ name := "mutp_CtoA"
+	, gate := "qp_C"
+	, rate_fun := "fun_linearC"
+	//, rate := rateC
+	, mutations := { "mut_CtoA", "mut_CtoD" }
+	, mutation_probs := { 1.0, 0.0 } 
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpAlog", input := {"qp_A"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red, target := "fun_qpAlog", scale := 0.5 ]);
+
+function([ name := "fun_qpBlog", input := {"qp_B"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_green", gate := "qp_B", rgb := _green, target := "fun_qpBlog", scale := 0.5 ]);
+
+function([ name := "fun_qpClog", input := {"qp_C"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_blue", gate := "qp_C", rgb := _blue, target := "fun_qpClog", scale := 0.5 ]);
+
+//---
+cells_plot([ name := "cplt_qpA", fields := { "qp_A" } , stats := { "avg", "min", "max" } ]);
+cells_plot([ name := "cplt_qpB", fields := { "qp_B" } , stats := { "avg", "min", "max" } ]);
+cells_plot([ name := "cplt_qpC", fields := { "qp_C" } , stats := { "avg", "min", "max" } ]);
+
+function([ name := "fun_total", input := { "qp_A", "qp_B", "qp_C" }, params := { 1.0, 10.0, 10.0 }  ]);
+cells_plot([ name := "cplt_all", fields := { "qp_A", "qp_B", "qp_C", "fun_total","qp_D" }, stats := { "avg" } ]);

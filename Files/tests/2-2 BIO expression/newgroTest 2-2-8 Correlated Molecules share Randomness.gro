@@ -1,0 +1,52 @@
+/* To test the synthesis of molecules with correlated expression times (sharing the randomness)
+To test:
+ - When t_offset is 0.0, both molecules must appear at the exact same time, so that the cells switch directly to yellow
+ - When t_offset not 0.0, that amount is the exact delay between the synthesis times. Note that this is only true if no spontaneous resampling (inertia)
+ - Try different stddevs for a less obvious correlation
+*/
+
+include gro3
+
+//params
+t_act := 100.0;
+t_act_var := 10.0;
+t_deg := 10.0;
+t_deg_var := 1.0;
+t_offset := 10.0;
+
+global_params([ seed := 66456463 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", strain := "_str_nogrowth", plasmids := {"p_AB"} ]);
+
+//---gene expression
+randomness([ name := "rnd_shared", inertia := 1.0 ]);
+
+molecule([ name := "mol_A", rnd := "rnd_shared", times := { -t_deg, t_act }, times_var := { t_deg_var, t_act_var } ]);
+molecule([ name := "mol_B", rnd := "rnd_shared", times := { -t_deg, t_act + t_offset }, times_var := { t_deg_var, t_act_var } ]);
+
+operon([ name := "op_AB", output := {"mol_A", "mol_B"} ]);
+bplasmid([ name := "p_AB", operons := { "op_AB" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0 ]);
+
+//---checkpoints
+pop_stat([ name := "stat_A", input := "mol_A" ]);
+pop_qgate([ name := "qpga_A", input := "stat_A" ]);
+timer([ name := "t_A", mode := "once", gate := "qpga_A" ]);
+checkpoint([ name := "stop_A", timer := "t_A", message := "molA produced" ]);
+
+pop_stat([ name := "stat_B", input := "mol_B" ]);
+pop_qgate([ name := "qpga_B", input := "stat_B" ]);
+timer([ name := "t_B", mode := "once", gate := "qpga_B" ]);
+checkpoint([ name := "stop_B", timer := "t_B", message := "molB produced", sound := true ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "mol_B", rgb := _red ]);

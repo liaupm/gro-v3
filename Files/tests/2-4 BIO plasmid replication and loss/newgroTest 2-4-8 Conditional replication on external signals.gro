@@ -1,0 +1,81 @@
+/*To test conditional replication of plasmids, whether there is replication or not, and variable copy number and/or rate that depends on the concentration of an external signal.
+
+To test, change selectedOriVs:
+ - ov_A1: replication only when signal over sThresholdA
+ - ov_A2: different maximum copy number (copyNumA and copyNumB) depending on the threshold reached by the signal concentration (sThresholdA, sThresholdB)
+ - ov_A3: rate function dependent on the signal concentration
+
+Notice that in this design, when more than one condition hold at the same time, the higher copy number is selected and the two rates are added
+*/
+
+include gro3
+
+copyNumA := 100.0;
+copyNumB := 20.0;
+
+sThresholdA := 1.0;
+sThresholdB := 0.1;
+
+selectedOriVs := { "ov_A1" };
+//selectedOriVs := { "ov_A2" };
+//selectedOriVs := { "ov_A3" };
+
+global_params([ seed := 133087, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := { 0.0, 0.0 }, ini_vol := 1.0  ]);
+cell_type([ name := "cell_A"
+	, strain := "str_A"
+	, qplasmids := {"qp_A"} 
+	, qplasmid_amounts := {1.0}
+	, qplasmids_as_conc := false
+]);
+
+
+//---replication
+qgate([ name := "qga_copyNumA", input := "qp_A", value := copyNumA, operator := "<" ]);
+qgate([ name := "qga_sA_A", input := "_conc_s_A", value := sThresholdA ]);
+bgate([ name := "bga_stateA", input := { "qga_sA_A", "qga_copyNumA" } ]);
+
+qgate([ name := "qga_copyNumB", input := "qp_A", value := copyNumB, operator := "<" ]);
+qgate([ name := "qga_sA_B", input := "_conc_s_A", value := sThresholdB ]);
+bgate([ name := "bga_stateB", input := { "qga_sA_B", "qga_copyNumB" } ]);
+
+bgate([ name := "bga_copyNum", type := "OR", input := { "bga_stateA", "bga_stateB" } ]);
+
+oriv([ name := "ov_A1", gate := "qga_sA_A", vmax := 0.1, w := 10.0 ]);
+oriv([ name := "ov_A2", gate := "bga_copyNum", vmax := 0.1, w := 10.0 ]);
+
+function([ name := "fun_rate3", input := {"_conc_s_A"}, type := "sum", params := {0.1} ]);
+oriv([ name := "ov_A3", rate_fun := "fun_rate3" ]);
+
+//---
+qplasmid([ name := "qp_A", oriVs := selectedOriVs ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ r := 0.0 ] ]);
+
+//---
+timer([ name := "t_A", period := 300.0 ]);
+
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.1, colour := _magenta, colour_sat := 10.0 ]);
+signal_placer([ name := "sp_A"
+	, signals := {"s_A"}
+	, amount := 10000.0
+	, sources := 1.0
+	, coords := [ x := 0.0, y := 0.0, r := 100.0 ]
+	, timer := "t_A"
+]);
+
+
+//------------ VISUALS -----------------------
+//cells_plot([ name := "cplt_qpA_sum", fields := { "qp_A" } , stats := {"sum" } ]);
+cells_plot([ name := "cplt_qpA_range", fields := { "qp_A" } , stats := "range" ]);
+cells_plot([ name := "cplt_qpA_avg", fields := { "qp_A" } , stats := {"avg" } ]);
+
+cells_plot([ name := "cplt_signal", fields := { "_conc_s_A" } , stats := {"avg" } ]);
+cells_plot([ name := "cplt_gates", fields := { "bga_copyNum" } , stats := {"avg" } ]);

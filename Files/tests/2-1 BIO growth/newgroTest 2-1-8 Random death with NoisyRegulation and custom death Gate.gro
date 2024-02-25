@@ -1,0 +1,69 @@
+/*To test the expression noise coupled with custom death condition. The death condition oscillates. When molA is present (red), the cells die in a stochastic way.
+Many die fast as soon as the condition is met (the ones that produce the toxin) and then the deaths are more scarce. The ones with negative noise survive unless their noise state changes during the molA (red) period of time. 
+Cells B use an alternative way to acrieve the same behaviour without regulation elements, just functions and gates. Both behaviours are equivalent on average. 
+To test, use different noiseParams and thresholdVal
+*/
+
+include gro3
+
+noiseParams := { 0.5, 0.1 };
+thresholdVal := 0.5;
+
+global_params([ seed := 123242, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", death_gate := "mol_toxin", growth_rate := 0.002, death_threshold := 10.0 ]);
+cell_type([ name := "cell_A", strain := "str_A", bplasmids := {"p_toxin", "p_A"} ]);
+
+strain([ name := "str_B", death_gate := "bga_noise", growth_rate := 0.002, death_threshold := 10.0 ]);
+cell_type([ name := "cell_B", strain := "str_B", bplasmids := {"p_A"} ]);
+
+
+//---gene expression
+molecule([ name := "mol_A", times := {-100.0, 100.0} , times_var := { 0.0, 0.0 } ]);
+molecule([ name := "mol_toxin", times := {-1.0, 2.0} , times_var := { 0.0, 0.0 }, thresholds := {thresholdVal} ]);
+
+bgate([ name := "ga_not_molA", input := {"-mol_A"} ]);
+operon([ name := "op_A", gate := "ga_not_molA", output := {"mol_A"} ]);
+
+randomness([ name := "rnd_noise", dist_type := "normal", inertia := 0.9, inheritance := 0.9 ]);
+regulation([ name := "nreg_toxin", gate := "mol_A", rnd := "rnd_noise", acti_on := noiseParams, acti_off := { 0.0, 0.0 } ]);
+operon([ name := "op_toxin", regulation := "nreg_toxin", output := {"mol_toxin"} ]);
+
+plasmid([ name := "p_toxin", operons := {"op_toxin"} ]);
+plasmid([ name := "p_A", operons := {"op_A"} ]);
+
+
+//---alternative
+function([ name := "fun_noise", type := "const", params := {0.0}, rnd := "rnd_noise", rnd_params := noiseParams ]);
+qgate([ name := "qga_noise", input := "fun_noise",  operator := ">=", value := thresholdVal ]);
+bgate([ name := "bga_noise", input := {"qga_noise", "mol_A"} ]);
+
+
+//---metabolism
+randomness([ name := "rnd_uni", dist_type := "uniform", inertia := 1.0, inheritance := 0.0, sampling_time := 20.0 ]);
+flux([ name := "flux_death"
+	, metabolite := "_biomass"
+	, gate := "mol_A"
+	, amount_rnd := "rnd_uni"
+	, amount := { -1.0, 1.0 }
+	, direction := "absorption"
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 500.0, coords := [ x := -200.0, y := -200.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 500.0, coords := [ x := 200.0, y := 200.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "ga_not_molA", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "mol_A", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "cell_B", rgb := _blue ]);
+
+plot([ name := "plot_count", fields := {"cell_A", "cell_B"}, stats := {"sum"} ]);
+plot([ name := "plot_alt", fields := {"fun_noise"}, stats := {"avg", "min", "max"} ]);
+plot([ name := "plot_gates", fields := {"qga_noise",  "bga_noise"}, stats := {"avg"} ]);

@@ -1,0 +1,57 @@
+/* To test custom acti_on of regulation together with multiple times and thresholds
+Notice that the total activation of cell_AA is 1 in spite of having two copies of the regulation, because several copies of the same regulation are not added automatically (unless dosage is set to true)
+*/
+
+include gro3
+
+//params
+t_act_fast := 50.0;
+t_act_slow := 100.0;
+t_act_var := 0.0;
+t_deg := 10.0;
+t_deg_var := 0.0;
+
+global_params([ seed := 66456463 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_AA", plasmids := { "p_AA" } ]);
+cell_type([ name := "cell_B", plasmids := {"p_B"} ]);
+cell_type([ name := "cell_C", plasmids := {"p_C"} ]);
+cell_type([ name := "cell_AB", plasmids := { "p_A", "p_B" } ]);
+
+
+//---gene expression
+molecule([ name := "mol_A"
+	, times := { -t_deg, t_act_slow, t_act_fast }
+	, times_var := { t_deg_var, t_act_var, t_act_var }
+	, thresholds := { 1.5, 2.5 } 
+]);
+
+operon([ name := "op_A", output := {"mol_A"}, dosage := false ]);
+
+regulation([ name := "reg_B", acti_on := 2.0 ]);
+operon([ name := "op_B", regulation := "reg_B", output := {"mol_A"} ]);
+
+regulation([ name := "reg_C", acti_on := 3.0 ]);
+operon([ name := "op_C", regulation := "reg_C", output := {"mol_A"} ]);
+
+bplasmid([ name := "p_A", operons := { "op_A" } ]);
+bplasmid([ name := "p_AA", operons := { "op_A", "op_A" } ]);
+bplasmid([ name := "p_B", operons := { "op_B" } ]);
+bplasmid([ name := "p_C", operons := { "op_C" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := 0.0, y := 0.0 ] ]);
+cell_placer([ name := "cp_AA", cell_types := {"cell_AA"}, amount := 1.0, coords := [ x := -300.0, y := -300.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 1.0, coords := [ x := -300.0, y := 300.0 ] ]);
+cell_placer([ name := "cp_C", cell_types := {"cell_C"}, amount := 1.0, coords := [ x := 300.0, y := -300.0 ] ]);
+cell_placer([ name := "cp_AB", cell_types := {"cell_AB"}, amount := 1.0, coords := [ x := 300.0, y := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);

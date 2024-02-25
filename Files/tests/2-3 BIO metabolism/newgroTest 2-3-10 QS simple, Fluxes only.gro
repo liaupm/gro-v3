@@ -1,0 +1,56 @@
+/*Simplified and abstracted quorum sensing. The cells must glow at higher concentrations only. The required concentration depends on the emitted amount of AHL signal, the diffusion coafficient and the sensing threshold.
+Randomness in the emission and sensing threshold can slightmy modify the behaviour. Too much noise can make the cells enter quorum state at low densities. 
+*/
+
+include gro3
+
+outLow := { 0.1, 0.01 };
+outHigh := { 1.0, 0.1 };
+qsThreshold := { 0.7, 0.1 };
+
+
+global_params([ seed := 8093, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", strain := "_str_nogrowth" ]);
+cell_type([ name := "cell_B", strain := "_str_nogrowth" ]);
+cell_type([ name := "cell_C", strain := "_str_nogrowth" ]);
+cell_type([ name := "cell_D", strain := "_str_nogrowth" ]);
+
+
+//---gene expression
+molecule([ name := "mol_quorum", times := { -20.0, 10.0 }, times_var := { 1.0, 1.0 } ]);
+
+
+//---metabolism
+signal([ name := "s_AHL", kdiff := 0.3, kdeg := 0.05, colour := _magenta, colour_sat := 1.0 ]);
+
+//---
+flux([ name := "flux_out_low", metabolite := "s_AHL", amount := outLow, direction := 1 ]);
+flux([ name := "flux_sense", metabolite := "s_AHL", output := {"mol_quorum"}, threshold := qsThreshold ]);
+
+flux([ name := "flux_out_high"
+	, metabolite := "s_AHL"
+	, gate := "mol_quorum"
+	, amount := outHigh
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 500.0, coords := [ x := -300.0, y := -300.0, r := 150.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 100.0, coords := [ x := 300.0, y := -300.0, r := 150.0 ] ]);
+cell_placer([ name := "cp_C", cell_types := {"cell_C"}, amount := 50.0, coords := [ x := -300.0, y := 300.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_D", cell_types := {"cell_D"}, amount := 10.0, coords := [ x := 300.0, y := 300.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_quorum", rgb := _green, mode := "delta", delta := 0.01 ]);
+
+//---
+plot([ name := "plot_A", fields := {"_conc_s_AHL"}, gate := "cell_A", stats := {"avg", "min", "max"} ]);
+plot([ name := "plot_B", fields := {"_conc_s_AHL"}, gate := "cell_B", stats := {"avg", "min", "max"} ]);
+plot([ name := "plot_C", fields := {"_conc_s_AHL"}, gate := "cell_C", stats := {"avg", "min", "max"} ]);
+plot([ name := "plot_D", fields := {"_conc_s_AHL"}, gate := "cell_D", stats := {"avg", "min", "max"} ]);

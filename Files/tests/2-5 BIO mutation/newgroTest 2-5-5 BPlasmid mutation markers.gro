@@ -1,0 +1,81 @@
+/*To test the mutation events, both for mutation and mutation_process. Used to report and counts the events via stats or to trigger processes in the cell, like gene expression. mol_rep is used to report the event with cell colour during a longer period of time.
+
+To test:
+ - switch selectedGate
+ - change mutProbs
+ - change the expression times of mol_rep
+*/
+
+include gro3
+
+selectedGate := "bp_A";
+//selectedGate := "_ga_true";
+//selectedGate := "_ga_false";
+mutRate := 0.01;
+mutProbs := { 1.0, 2.0, 0.0, 0.0, 0.0, 0.0 };
+
+reportGate := "mutp_ABC_event";
+//reportGate := "mut_AB_event";
+//reportGate := "mut_AC_event";
+
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := { 0.01, 0.0 } ]);
+cell_type([ name := "cell_A", strain := "str_A", bplasmids := { "bp_A", "bp_rep" } ]);
+
+
+//---plasmids
+bplasmid([ name := "bp_A" ]);
+bplasmid([ name := "bp_B" ]);
+bplasmid([ name := "bp_C" ]);
+
+molecule([ name := "mol_rep", times := { -10.0, 0.01 } ]);
+operon([ name := "op_rep", gate := reportGate, output := {"mol_rep"} ]);
+bplasmid([ name := "bp_rep", operons := {"op_rep"} ]);
+
+
+//---mutations
+mutation([ name := "mut_AB", plasmids := { "bp_A", "bp_B" }, amounts := { -1, 1 }, event := "mut_AB_event" ]);
+mutation([ name := "mut_AC", plasmids := { "bp_A", "bp_C" }, amounts := { -1, 1 }, event := "mut_AC_event" ]);
+mutation([ name := "mut_noA", plasmids := { "bp_A" } , amounts := { -1 }, event := "mutnoA_event" ]);
+//null mutations
+mutation([ name := "mut_AA", plasmids := { "bp_A", "bp_A" }, amounts := { -1, 1 }, event := "mut_AA_event" ]);
+mutation([ name := "mut_0", plasmids := { "bp_A" }, amounts := { 0 }, event := "mut_0_event" ]);
+mutation([ name := "mut_00", plasmids := {}, amounts := {}, event := "mut_00_event" ]);
+
+//---
+mutation_process([ name := "mutp_ABC"
+	, gate := selectedGate
+	, rate := mutRate
+	, mutations := { "mut_AB", "mut_AC", "mut_noA", "mut_AA", "mut_0", "mut_00" }
+	, mutation_probs := mutProbs 
+	, event := "mutp_ABC_event"
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_red", gate := "mutp_ABC_event", rgb := _red ]);
+cell_colour([ name := "ccol_green", gate := reportGate, rgb := _green ]);
+cell_colour([ name := "ccol_rep", gate := "mol_rep", rgb := _blue ]);
+
+//---
+plot([ name := "plot_plas", fields := { "bp_A", "bp_B", "bp_C" }, gate := "cell_A", stats := "avg" ]);
+
+bgate([ name := "bga_mutated", input := {"cell_A", "-bp_A"} ]);
+pop_stat([ name := "stat_gotB", gate := "bga_mutated", input := "bp_B", stats := "avg" ]);
+pop_stat([ name := "stat_gotC", gate := "bga_mutated", input := "bp_C", stats := "avg" ]);
+pop_function([ name := "pfun_ratioBtoC", type := "product", input := {"stat_gotB", "stat_gotC" }, params := { 1.0, -1.0 }  ]);
+//plot([ name := "plot_ratioBtoC", pop_fields := {"pfun_ratioBtoC" } ]);
+
+plot([ name := "plot_events", fields := { "mut_AB_event", "mut_AC_event", "mutnoA_event", "mut_AA_event", "mut_0_event", "mut_00_event", "mutp_ABC_event" }, stats := {"sum"} ]);
+plot([ name := "plot_counts", fields := { "mut_AB_event", "mut_AC_event", "mutnoA_event", "mut_AA_event", "mut_0_event", "mut_00_event", "mutp_ABC_event" }, stats := {"acc"} ]);
+plot([ name := "plot_rep", fields := {"mol_rep"}, stats := {"sum"} ]);

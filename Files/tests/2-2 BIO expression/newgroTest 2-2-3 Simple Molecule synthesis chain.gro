@@ -1,0 +1,38 @@
+/* To test conditional gene expression. The cells should turn blue and then green
+*/
+
+include gro3
+
+//params
+t_act := 100.0;
+t_act_var := 0.0;
+t_deg := 10.0;
+t_deg_var := 0.0;
+
+global_params([ seed := 1234 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", plasmids := {"p_AB"} ]);
+
+//---gene expression
+protein ([ name := "prot_A", times := { -t_deg, t_act }, times_var := { t_deg_var, t_act_var } ]);
+protein ([ name := "prot_B", times := { -t_deg, t_act }, times_var := { t_deg_var, t_act_var } ]);
+
+operon([ name := "op_A", output := {"prot_A"} ]);
+operon([ name := "op_B", gate := "prot_A", output := {"prot_B"} ]);
+bplasmid([ name := "p_AB", operons := { "op_A", "op_B" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0 ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_blue", gate := "prot_A", rgb := _blue ]);
+cell_colour([ name := "ccol_green", gate := "prot_B", rgb := _green ]);
+
+//---
+cells_plot([ name := "cplt_AB", fields := {"prot_A", "prot_B"} , stats := {"sum"} ]);

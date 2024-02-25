@@ -1,0 +1,75 @@
+/*To test the use of custom functions for the rate_w parameter of orit. "ot_A" has a fixed independent rate_w while for "ot_B" it is a custom linear function on the number of "op_moreB" operons present in the cell. "cell_donorMoreA" has no "op_moreB" so that the rate_w of "ot_B" is equal to the bias of the custom function. 
+
+To test: change the number of copies of the operon at bOperons and check that the ratio to conjugations using "ot_B" to those using "ot_A" matches the ratio wetbeen their rate_w */
+
+include gro3
+
+moreBscaler := 2.0;
+distance := 500.0;
+bOperons := {"op_moreB", "op_moreB"};
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donorMoreA", strain := "_str_nogrowth", plasmids := {"p_A", "p_B"} ]);
+cell_type([ name := "cell_donorMoreB", strain := "_str_nogrowth", plasmids := {"p_A", "p_B", "p_moreB"} ]);
+cell_type([ name := "cell_recipientMoreA", strain := "_str_nogrowth" ]);
+cell_type([ name := "cell_recipientMoreB", strain := "_str_nogrowth" ]);
+
+//---plasmids
+plasmid([ name := "p_A", oriTs := {"ot_A"} ]);
+plasmid([ name := "p_B", oriTs := {"ot_B"} ]);
+plasmid([ name := "p_moreB", operons := bOperons ]);
+
+
+//---conjugation
+operon([ name := "op_moreB" ]);
+bgate([ name := "ga_donor", type := "OR", input := { "cell_donorMoreA", "cell_donorMoreB" } ]);
+bgate([ name := "ga_noPlas", input := {"-ot_A", "-ot_B"} ]);
+
+pilus([ name := "pil_AB", donor_gate := "ga_donor", recipient_gate := "ga_noPlas", max_rate := { 0.01, 0.0 } ]);
+oriT([ name := "ot_A", pilus := "pil_AB", rate_w := 1.0 ]);
+
+function([ name := "fun_moreB", type := "sum", input := {"op_moreB"}, params := {moreBscaler, 1.0} ]);
+function([ name := "fun_const", type := "const", params := {moreBscaler} ]);
+oriT([ name := "ot_B", pilus := "pil_AB", rate_w_fun := "fun_moreB" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_moreA", cell_types := {"cell_donorMoreA"}, amount := 30.0, coords := [ x := -distance, y := -distance, r := 300.0 ] ]);
+cell_placer([ name := "cp_moreB", cell_types := {"cell_donorMoreB"}, amount := 30.0, coords := [ x := distance, y := distance, r := 300.0 ] ]);
+cell_placer([ name := "cp_recipientMoreA", cell_types := {"cell_recipientMoreA"}, amount := 1000.0, coords := [ x := -distance, y := -distance, r := 300.0 ] ]);
+cell_placer([ name := "cp_recipientMoreB", cell_types := {"cell_recipientMoreB"}, amount := 1000.0, coords := [ x := distance, y := distance, r := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "p_A", rgb := _green, intensity := 0.5 ]);
+cell_colour([ name := "ccol_red", gate := "p_B", rgb := _red, intensity := 0.5 ]);
+cell_colour([ name := "ccol_blue", gate := "ga_donor", rgb := _blue, intensity := 0.5 ]);
+
+//---
+bgate([ name := "ga_gotAmoreA", input := { "cell_recipientMoreA", "p_A" } ]);
+bgate([ name := "ga_gotBmoreA", input := { "cell_recipientMoreA", "p_B" } ]);
+bgate([ name := "ga_gotAmoreB", input := { "cell_recipientMoreB", "p_A" } ]);
+bgate([ name := "ga_gotBmoreB", input := { "cell_recipientMoreB", "p_B" } ]);
+
+bgate([ name := "ga_gotAnyMoreA", type := "OR", input := { "ga_gotAmoreA", "ga_gotBmoreA" } ]);
+bgate([ name := "ga_gotAnyMoreB", type := "OR", input := { "ga_gotAmoreB", "ga_gotBmoreB" } ]);
+
+pop_stat([ name := "stat_AmoreA", gate := "ga_gotAnyMoreA", input := "p_A", stats := {"avg"} ]);
+pop_stat([ name := "stat_BmoreA", gate := "ga_gotAnyMoreA", input := "p_B", stats := {"avg"} ]);
+pop_stat([ name := "stat_AmoreB", gate := "ga_gotAnyMoreB", input := "p_A", stats := {"avg"} ]);
+pop_stat([ name := "stat_BmoreB", gate := "ga_gotAnyMoreB", input := "p_B", stats := {"avg"} ]);
+
+plot([ name := "plot_avgA", pop_fields := { "stat_AmoreA", "stat_BmoreA" } ]);
+plot([ name := "plot_avgB", pop_fields := { "stat_AmoreB", "stat_BmoreB" } ]);
+
+pop_function([ name := "pfun_ratioA", type := "product", input := { "stat_BmoreA", "stat_AmoreA" }, params := { 1.0, -1.0 } ]);
+pop_function([ name := "pfun_ratioB", type := "product", input := { "stat_BmoreB", "stat_AmoreB" }, params := { 1.0, -1.0 } ]);
+plot([ name := "plot_ratio", pop_fields := { "pfun_ratioA", "pfun_ratioB" } ]);
+
+pop_function([ name := "pfun_ratioratio", type := "product", input := { "pfun_ratioB", "pfun_ratioA" }, params := { 1.0, -1.0 } ]);
+plot([ name := "plot_ratioratio", pop_fields := { "pfun_ratioratio" } ]);

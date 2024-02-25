@@ -1,0 +1,60 @@
+/*To test mutations with both bplasmids and qplasmids, in the absence of cell growth, division or plasmid replication. plasmids and amounts fields on mutation; gate, rate, rate_fun, mutations and mutations_probs fields of mutation_process
+The amount or bplasmid must take only the values 0 and 1 while the amount of qplasmid must be non-negative. If the bplasmid is already 1, the mutation that adds it doesn't modify the state.
+
+"qp_A"has to be used as the condition for the mutation_process. Otherwise, the mutation would occcur forever, only adding ("qp_B"). Notice that in that case, "qp_A" would remain at 0 and never be negative. If the negative coefficient was other than -1, a qgate condition would be used instead. When using the custom rate function, the gateis not necessary
+
+Check that the total is maintained
+*/
+
+include gro3
+
+iniCopies := 10.0;
+
+global_params([ seed := 123740, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_static", growth_rate := { 0.0, 0.0 }, ini_vol := 1.5 ]);	
+cell_type([ name := "cell_A"
+	, strain := "str_static"
+	, qplasmids := {"qp_A"} 
+	, qplasmid_amounts := { iniCopies }
+	, qplasmids_as_conc := false
+]);
+
+//---plasmids
+qplasmid([ name := "qp_A" ]);
+qplasmid([ name := "qp_B" ]);
+bplasmid([ name := "bp_C" ]);
+
+
+//---mutations
+mutation([ name := "mut_AtoB", plasmids := { "qp_A", "qp_B", "bp_C" } , amounts := { -1, 1, 1 } ]);
+
+function([ name := "fun_rate", input := { "qp_A" }, type := "sat_exp", params := { 10.0, 0.01 }, auto_vol := "division" ]);
+mutation_process([ name := "mutp_AtoB"
+	, gate := "qp_A"
+	//, rate_fun := "fun_rate"
+	, rate := 0.1
+	, mutations := {"mut_AtoB"}
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red ]);
+cell_colour([ name := "ccol_green", gate := "qp_B", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "bp_C", rgb := _blue ]);
+
+//---
+cells_plot([ name := "cplt_qpA", fields := { "qp_A" } , stats := { "avg", "min", "max" } ]);
+cells_plot([ name := "cplt_qpB", fields := { "qp_B" } , stats := { "avg", "min", "max" } ]);
+cells_plot([ name := "cplt_bpC", fields := { "bp_C" } , stats := { "avg", "min", "max" } ]);
+
+function([ name := "fun_total", input := { "qp_A", "qp_B" }, type := "sum" ]);
+cells_plot([ name := "cplt_total", fields := { "fun_total" } , stats := { "avg", "min", "max" } ]);

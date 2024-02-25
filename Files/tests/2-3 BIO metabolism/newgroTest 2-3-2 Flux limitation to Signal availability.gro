@@ -1,0 +1,80 @@
+/* To test the limitation of fluxes to signal availability in detail. The negative fluxes are scaled ot to exceed the available 
+*/
+
+include gro3
+
+signalSaturation := 100;
+
+global_params([ seed := 133087, render_signals := true, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := 0.0, ini_vol := 2.355 ]);
+cell_type([ name := "cell_B", strain := "str_A" ]);
+
+//---metabolism
+signal([ name := "s_B", kdiff := 0.2, kdeg := 0.1, colour := _cyan, colour_sat := signalSaturation ]);
+
+randomness([ name := "rnd_B", dist_type := "uniform", inheritance := 1.0, inertia := 0.0, sampling_time := 20.0 ]);
+flux([ name := "flux_Bin1"
+	, metabolite := "s_B"
+	, gate := "cell_B"
+	, amount_rnd := "rnd_B"
+	//, amount := -50.0
+	, amount := { -100.0, -100.0 }
+	//, direction := "emission"
+	, absolute := true
+]);
+
+flux([ name := "flux_Bin2"
+	, metabolite := "s_B"
+	, gate := "cell_B"
+	//, amount_rnd := "rnd_B"
+	, amount := -50.0
+	//, amount := { 1.0, 1.0 }
+	//, direction := "emission"
+	, absolute := true
+]);
+
+flux([ name := "flux_Bout"
+	, metabolite := "s_B"
+	, gate := "cell_B"
+	//, amount_rnd := "rnd_B"
+	, amount := { 20.0, 0.0 }
+	//, amount := { -100.0, 100.0 }
+	//, direction := "emission"
+	, absolute := true
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+
+//---
+timer([ name := "t_A", period := 50.0 ]);
+
+signal_placer([ name := "sp_A"
+	, signals := {"s_B"}
+	, mode := "add"
+	, amount := { 2000.0, 10.0 }
+	, sources := 1.0
+	, coords := [ x := 0.0, y := 0.0, r := 100.0 ]
+	, timer := "t_A"
+]);
+
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_B", gate := "cell_B", rgb := _cyan, target := "s_B", scale := 100.0 ]);
+
+function([ name := "fun_BinSum", type := "sum", input := { "flux_Bin1", "flux_Bin2" }, params := { 1.0, 1.0 }, min := -10000.0  ]);
+plot([ name := "plot_Bflux", fields := { "flux_Bin1", "flux_Bin2", "flux_Bout" }, gate := "cell_B", stats := "avg" ]);
+plot([ name := "plot_Btotal", fields := {"s_B", "fun_BinSum" }, gate := "cell_B", stats := "avg" ]);
+plot([ name := "plot_Bmedium", fields := {"_conc_s_B" }, gate := "cell_B", stats := "avg" ]);
+//plot([ name := "plot_Brnd", fields := { "rnd_B" }, gate := "cell_B", stats := "avg" ]);
+
+qgate([ name := "qga_Bflux", input := "flux_Bin1", value := 0.0 ]);
+qgate([ name := "qga_Btotal", input := "s_B", value := 0.0 ]);
+plot([ name := "plot_z_Bgates", fields := {"qga_Bflux", "qga_Btotal"}, gate := "cell_B", stats := "avg" ]);

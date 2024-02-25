@@ -1,0 +1,59 @@
+/*To test the use of custom functions as the exhanged amount of fluxes. The amount depends on the concentration of a suicide plasmid that gets diluted.
+The function is selected to make the cells produce signal at high concentrations of the plasmid and consume it when it gets diluted. 
+To test:
+ - Use the inverted option for the opposite behaviour
+ - Restrict the direction of the flux to compare with the unrestricted bidirectional behaviour
+*/
+
+include gro3
+
+global_params([ seed := 133087, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := 0.01, ini_vol := 2.5 ]);
+qplasmid([ name := "qp_A" ]);
+
+cell_type([ name := "cell_A", strain := "str_A", qplasmids := {"qp_A"}, qplasmid_amounts := {50.0}, qplasmids_as_conc := true ]);
+cell_type([ name := "cell_B", strain := "str_A", qplasmids := {"qp_A"}, qplasmid_amounts := {20.0}, qplasmids_as_conc := true ]);
+cell_type([ name := "cell_C", strain := "str_A", qplasmids := {"qp_A"}, qplasmid_amounts := {10.0}, qplasmids_as_conc := true ]);
+cell_type([ name := "cell_0", strain := "str_A" ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.0, colour := _magenta, colour_sat := 0.1 ]);
+
+function([ name := "fun_qpA", input := {"qp_A"}, params := { 0.02, -0.2 }, auto_vol := true ]);
+//function([ name := "fun_qpA", type := "sum", input := {"_conc_gr"}, params := { -1.0 } ]);
+//qgate([ name := "qga_A", input := "fun_qpA", value := 100.0 ]);
+
+
+flux([ name := "flux_Aout"
+	//, gate := "qga_A"
+	, metabolite := "s_A"
+	//, amount := 10.0
+	, amount_fun := "fun_qpA"
+	//, direction := -1
+	//, direction := "emission"
+	//, inverted := true
+	//, absolute := true
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := -200.0, y := -200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 1.0, coords := [ x := 200.0, y := -200.0, r := 0.0 ]]);
+cell_placer([ name := "cp_C", cell_types := {"cell_C"}, amount := 1.0, coords := [ x := -200.0, y := 200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_0", cell_types := {"cell_0"}, amount := 1.0, coords := [ x := 200.0, y := 200.0, r := 0.0 ]]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_logA", input := {"qp_A"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_green", gate := "qp_A", rgb := _green, target := "fun_logA", scale := 0.5 ]);
+
+plot([ name := "plot_A", fields := {"fun_qpA", "flux_Aout", "s_A", "_conc_s_A"}, gate := "cell_A", stats := "avg" ]);
+plot([ name := "plot_B", fields := {"fun_qpA", "flux_Aout", "s_A", "_conc_s_A"}, gate := "cell_B", stats := "avg" ]);
+plot([ name := "plot_C", fields := {"fun_qpA", "flux_Aout", "s_A", "_conc_s_A"}, gate := "cell_C", stats := "avg" ]);
+plot([ name := "plot_0", fields := {"fun_qpA", "flux_Aout", "s_A", "_conc_s_A"}, gate := "cell_0", stats := "avg" ]);

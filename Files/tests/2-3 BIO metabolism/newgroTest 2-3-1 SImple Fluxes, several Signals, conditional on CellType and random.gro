@@ -1,0 +1,99 @@
+/* To test the basic features of the flux element: the amitted/absorbed amount without custom functions and conditional fluxes that only depend on the cell_type
+Fields: signal/metabolite, gate/internal_gate, amount/amount_params, amount_rnd, direction and absolute/is_absolute. 
+The cells have a fixed size to test the scaling by volume.
+
+cell_A is used to test how two fluxes for the same signal are added up and the absolute option
+cell_B is used to test a random amount that can switch the direction (emission/absortion) when the direciton is not locked. Check that the negative flux doesn't exceed the amount in the medium
+cell_C is used to test custom random amounts following non-normal distribution and direction lock when it applies
+cell_D is used to test absortion. The amount of s_A near them must be way lower than s_C when they are emitted at the same rate.
+
+To test: use the absolute option and restrict directions, and he different ways to specify the amount distribution
+*/
+
+include gro3
+
+signalSaturation := 10.0;
+
+global_params([ seed := 133087, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := 0.0, ini_vol := 2.0 ]);
+
+cell_type([ name := "cell_A", strain := "str_A" ]);
+cell_type([ name := "cell_B", strain := "str_A" ]);
+cell_type([ name := "cell_C", strain := "str_A" ]);
+cell_type([ name := "cell_D", strain := "str_A" ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.5, colour := _magenta, colour_sat := signalSaturation ]);
+signal([ name := "s_B", kdiff := 0.5, colour := _cyan, colour_sat := signalSaturation ]);
+signal([ name := "s_C", kdiff := 0.5, colour := _yellow, colour_sat := signalSaturation ]);
+
+//---
+flux([ name := "flux_Aout1"
+	, signal := "s_A"
+	, gate := "cell_A"
+	, amount := 200.0
+	, absolute := true
+	, direction := 2
+]);
+
+flux([ name := "flux_Aout2"
+	, metabolite := "s_A"
+	, internal_gate := "cell_A"
+	, amount := 300.0
+	//, absolute := true
+	//, direction := -2
+]);
+
+randomness([ name := "rnd_B", inheritance := 0.5, inertia := 0.5, sampling_time := 10.0 ]);
+flux([ name := "flux_Bbi"
+	, metabolite := "s_B"
+	, gate := "cell_B"
+	, amount_rnd := "rnd_B"
+	, amount := { 0.0, 100.0 }
+	, direction := "emission"
+]);
+
+randomness([ name := "rnd_uniC", dist_type := "uniform" ]);
+flux([ name := "flux_Cout"
+	, signal := "s_C"
+	, gate := "cell_C"
+	, amount_rnd := "rnd_uniC"
+	, amount := { 500.0, 500.0 }
+	, is_absolute := true
+	, direction := "emission"
+]);
+
+function([ name := "fun_sA", input := {"_conc_s_A"}, params := {-1.0}  ]);
+flux([ name := "flux_Ain"
+	, metabolite := "s_A"
+	, gate := "cell_D"
+	//, amount_fun := "fun_sA"
+	, amount := -1000000.0
+	, absolute := true
+	, direction := -1
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := -100.0, y := 100.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 1.0, coords := [ x := 0.0, y := -100.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_C", cell_types := {"cell_C"}, amount := 1.0, coords := [ x := 100.0, y := 100.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_D", cell_types := {"cell_D"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_A", gate := "cell_A", rgb := _magenta ]);
+cell_colour([ name := "ccol_B", gate := "cell_B", rgb := _cyan ]);
+cell_colour([ name := "ccol_C", gate := "cell_C", rgb := _yellow ]);
+
+pop_stat([ name := "stat_AD", gate := "cell_D", input := "flux_Ain", stats := "avg" ]);
+plot([ name := "plot_A", pop_fields := { "stat_AD" }, fields := { "flux_Aout1", "flux_Aout2", "s_A", "_conc_s_A" }, gate := "cell_A", stats := "avg" ]);
+plot([ name := "plot_B", fields := { "flux_Bbi", "s_B", "_conc_s_B" }, gate := "cell_B", stats := "avg" ]);
+plot([ name := "plot_C", fields := { "flux_Cout", "s_C", "_conc_s_C" }, gate := "cell_C", stats := "avg" ]);
+plot([ name := "plot_Dconcs", fields := { "_conc_s_A", "_conc_s_C" }, gate := "cell_D", stats := "avg" ]);

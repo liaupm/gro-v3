@@ -1,0 +1,51 @@
+/* To test conditional gene expression and feedbackloops with custom functions for the expression times. The cells should oscillate between 3 colours, with the resulting intermediate colours
+To test: 
+ - Use different synthesis and degradation times and variabilities
+ - Try different initial molecules, including the three of them with deterministic times, to check that the expression events occur at the same time
+ - When stochastic, the cells must get more desynchronized with time. Add randomness throgh the rnd_params field of the function
+ - Check that the funtions shadow the simple values. Use null functions ("") to check that the simple times are selected in that case
+*/
+
+include gro3
+
+//params
+t_act := 30.0;
+t_var := 2.0;
+t_deg := 30.0;
+
+
+global_params([ seed := 133087 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_ABC", strain := "_str_slow", plasmids := {"p_ABC"}, molecules := {"mol_A"} ]);
+
+
+//---gene expression
+function([ name := "fun_time", type := "sum", input := {"p_ABC"}, params := {t_act * 2}, rnd_params := {0.0, t_var} ]);
+
+molecule([ name := "mol_A", times := {-t_deg, t_act }, times_var := { t_var, t_var }, time_funs := {"","fun_time"} ]);
+molecule([ name := "mol_B", times := {-t_deg, t_act }, times_var := { t_var, t_var }, time_funs := {"-fun_time",""} ]);
+molecule([ name := "mol_C", times := {-t_deg, t_act }, times_var := { t_var, t_var }, time_funs := {"-fun_time","fun_time"} ]);
+
+bgate([ name := "ga_notMolA", input := {"-mol_A"} ]);
+bgate([ name := "ga_notMolB", input := {"-mol_B"} ]);
+bgate([ name := "ga_notMolC", input := {"-mol_C"} ]);
+
+operon([ name := "op_A", gate := "ga_notMolC", output := {"mol_A"} ]);
+operon([ name := "op_B", gate := "ga_notMolA", output := {"mol_B"} ]);
+operon([ name := "op_C", gate := "ga_notMolB", output := {"mol_C"} ]);
+
+plasmid([ name := "p_ABC", operons := { "op_A", "op_B", "op_C" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "mol_B", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "mol_C", rgb := _blue ]);

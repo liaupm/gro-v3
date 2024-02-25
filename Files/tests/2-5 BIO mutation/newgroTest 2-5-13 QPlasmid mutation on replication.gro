@@ -1,0 +1,128 @@
+/*To test the mutations linked to replication from OriVs and mutation picking. The simulation includes plasmid replication, eclipse time for both replication and mutation and growth. 
+
+To test:
+ - Change the mutation rates, checking that those with probability 0 don't appear
+ - Set the raplication rates to 0 to check that the mutations linke to those orivs don't appear
+ - Remove a mutation_process from repli_mutations to check that the mutation takes place even if there is no replication 
+ - Try different combinations of repli_mutation_keys and mutation_keys and check that the mutations that take place are those specified. key 1 is always added to all the elements
+ - Modify other params like replication rates, eclipse times, growth rate, copy number or initial amounts
+*/
+
+include gro3
+
+copyNum := 20.0;
+iniCopies := 10.0;
+
+repliRateA := 1.0;
+repliRateB := 1.0;
+repliRateC := 1.0;
+
+mutProbAtoB := 0.1;
+mutProbAtoC := 0.1;
+mutProbBtoC := 0.1;
+
+//bMutEclipse := false;
+bMutEclipse := true;
+
+//bRepliEclipse := false;
+bRepliEclipse := true;
+
+eclipseTime := { 4.0, 0.1 };
+
+//volScale := "none";
+volScale := "division";
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A"
+	, strain := "_str_slow"
+	, qplasmids := { "qp_A", "qp_B", "qp_C" } 
+	, qplasmid_amounts := { iniCopies, 0, 0 }
+	//, qplasmids_as_concs := false
+]);
+
+//---plasmids 
+qplasmid([ name := "qp_A"
+	, partition_system := "ps_common"
+	, oriVs := {"ov_A"}
+	, repli_mutations := { "mutp_AtoB", "mutp_AtoC" }
+	, repli_mutation_keys := {2,3} 
+	, eclipse := eclipseTime
+	, eclipse_marker := "qpA_eclipse"
+]);
+
+qplasmid([ name := "qp_B"
+	, partition_system := "ps_common"
+	, oriVs := {"ov_B"}
+	, repli_mutations := { "mutp_BtoC" }
+	, repli_mutation_keys := {4} 
+	, eclipse := eclipseTime
+	, eclipse_marker := "qpB_eclipse"
+]);
+
+qplasmid([ name := "qp_C"
+	, partition_system := "ps_common"
+	, oriVs := {"ov_C"}
+	, eclipse := eclipseTime
+	, eclipse_marker := "qpC_eclipse"
+]);
+
+function([ name := "fun_copyNumRawA", input := { "qp_A", "qpA_eclipse" } ]);
+function([ name := "fun_copyNumRawB", input := { "qp_B", "qpB_eclipse" } ]);
+function([ name := "fun_copyNumRawC", input := { "qp_C", "qpC_eclipse" } ]);
+
+
+//---replication
+function([ name := "fun_copyNumRaw", input := { "ov_A", "ov_B", "ov_C", "ov_A_eclipse", "ov_B_eclipse", "ov_C_eclipse" } ]);
+function([ name := "fun_copyNum", input := { "fun_copyNumRaw" }, auto_vol := volScale ]);
+qgate([ name := "qga_copyNum", input := "fun_copyNum", value := copyNum, operator := "<" ]);
+
+function([ name := "fun_repliRateA", input := { "ov_A" }, params := { repliRateA }, auto_vol := volScale ]);
+oriv([ name := "ov_A", gate := "qga_copyNum", rate_fun := "fun_repliRateA", eclipse_marker := "ov_A_eclipse", eclipse := bRepliEclipse, mutation_keys := {2} ]);
+
+function([ name := "fun_repliRateB", input := { "ov_B" }, params := { repliRateB }, auto_vol := volScale ]);
+oriv([ name := "ov_B", gate := "qga_copyNum", rate_fun := "fun_repliRateB", eclipse_marker := "ov_B_eclipse", eclipse := bRepliEclipse, mutation_keys := {4} ]);
+
+function([ name := "fun_repliRateC", input := { "ov_C" }, params := { repliRateB }, auto_vol := volScale ]);
+oriv([ name := "ov_C", gate := "qga_copyNum", rate_fun := "fun_repliRateC", eclipse_marker := "ov_C_eclipse", eclipse := bRepliEclipse, mutation_keys := {3} ]);
+
+partition_system([ name := "ps_common", gate := "_ga_true", fraction := 0.5 ]);
+
+
+//---mutations
+mutation([ name := "mut_AtoB", plasmids := { "qp_A", "qp_B" }, amounts := { -1, 1 } ]);
+mutation([ name := "mut_AtoC", plasmids := { "qp_A", "qp_C" }, amounts := { -1, 1 } ]);
+mutation([ name := "mut_BtoC", plasmids := { "qp_B", "qp_C" }, amounts := { -1, 1 } ]);
+
+mutation_process([ name := "mutp_AtoB", rate := mutProbAtoB, mutations := {"mut_AtoB", "mut_AtoC"}, mutation_probs := { 1.0, 0.0 }, eclipse := bMutEclipse ]);
+mutation_process([ name := "mutp_AtoC", rate := mutProbAtoC, mutations := {"mut_AtoC"}, eclipse := bMutEclipse ]);
+mutation_process([ name := "mutp_BtoC", rate := mutProbBtoC, mutations := {"mut_BtoC"}, eclipse := bMutEclipse ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpAlog", input := {"fun_copyNumRawA"}, type := "log", params := {10.0}, auto_vol := volScale ]);
+function([ name := "fun_qpBlog", input := {"fun_copyNumRawB"}, type := "log", params := {10.0}, auto_vol := volScale ]);
+function([ name := "fun_qpClog", input := {"fun_copyNumRawC"}, type := "log", params := {10.0}, auto_vol := volScale ]);
+cell_colour([ name := "ccol_red", gate := "fun_copyNumRawA", target := "fun_qpAlog", rgb := _red, scale := 0.5 ]);
+cell_colour([ name := "ccol_green", gate := "fun_copyNumRawB", target := "fun_qpBlog", rgb := _green, scale := 0.5 ]);
+cell_colour([ name := "ccol_blue", gate := "fun_copyNumRawC", target := "fun_qpClog", rgb := _blue, scale := 0.5 ]);
+
+//---
+plot([ name := "cplt_A", fields := { "qp_A", "qpA_eclipse", "fun_copyNumRawA" }, stats := {"avg"}, auto_vol := volScale ]);
+plot([ name := "cplt_B", fields := { "qp_B", "qpB_eclipse", "fun_copyNumRawB" }, stats := {"avg"}, auto_vol := volScale ]);
+plot([ name := "cplt_C", fields := { "qp_C", "qpC_eclipse", "fun_copyNumRawC" }, stats := {"avg"}, auto_vol := volScale ]);
+
+//plot([ name := "cplt_rangeA", fields := { "fun_copyNumRawA" }, stats := { "avg", "min", "max" }, auto_vol := volScale ]);
+//plot([ name := "cplt_rangeB", fields := { "fun_copyNumRawB" }, stats := { "avg", "min", "max" }, auto_vol := volScale ]);
+//plot([ name := "cplt_rangeC", fields := { "fun_copyNumRawC" }, stats := { "avg", "min", "max" }, auto_vol := volScale ]);
+
+//plot([ name := "cplt_active", fields := { "qp_A", "qp_B", "qp_C" } , stats := {"avg"}, auto_vol := volScale ]);
+plot([ name := "cplt_all", fields := { "fun_copyNumRawA", "fun_copyNumRawB", "fun_copyNumRawC", "fun_copyNumRaw" } , stats := {"avg"}, auto_vol := volScale ]);

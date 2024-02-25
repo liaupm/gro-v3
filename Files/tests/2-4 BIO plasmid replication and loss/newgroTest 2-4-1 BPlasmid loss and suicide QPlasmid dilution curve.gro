@@ -1,0 +1,43 @@
+/*To test the simple loss of bplasmids on cell division, loss_prob param of bplasmid.
+To test: change the value of lossProb. The fraction of cells with the plasmid must be, on average: lossProb^g where g is the number of generations.
+The strain is designed for synchronous divisions 
+It is compared with the loss of a suicide QPlasmid with an initial amount of 1. When lossProb = 1.0, both must match. 
+*/
+
+include gro3
+
+lossProb := { 1.0, 0.0 };
+//lossProb := 1.0;
+
+global_params([ seed := 133087, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := { 0.01, 0.0 }, ini_vol := 1.7, division_vol := 3.14, division_fraction := 0.5  ]);	//synchronyzed divisions
+cell_type([ name := "cell_A", strain := "str_A", bplasmids := {"bp_A"} ]);
+cell_type([ name := "cell_B", strain := "str_A", qplasmids := {"qp_B"}, qplasmids_as_conc := false ]);
+
+//---elements
+bplasmid([ name := "bp_A", loss_prob := lossProb  ]);
+qplasmid([ name := "qp_B" ]);
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ x := -400.0, y := -400.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := { "cell_B" }, amount := 100.0, coords := [ x := 400.0, y := 400.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "bp_A", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "qp_B", rgb := _blue ]);
+
+//---
+pop_stat([ name := "stat_bpA", gate := "cell_A", input := "bp_A", stats := {"sum", "avg"} ]);
+cells_plot([ name := "cplt_bpA_sum",pop_fields := { "stat_bpA_sum" } ]);
+cells_plot([ name := "cplt_bpA_avg", pop_fields := { "stat_bpA_avg" } ]);
+
+pop_stat([ name := "stat_qpB", gate := "cell_B", input := "qp_B", stats := {"sum", "avg"} ]);
+cells_plot([ name := "cplt_qpB_avg", pop_fields := { "stat_qpB_avg" } ]);
+
+cells_plot([ name := "cplt_both", pop_fields := { "stat_bpA_avg", "stat_qpB_avg" } ]);

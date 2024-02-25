@@ -1,0 +1,78 @@
+/*To test the strong control of copy number using a maximum amount as the oriv condition. Use of a simple custom rate function. 
+The two plasmids have independent replication, with two different and unrelated orivs, they do not interfere each other.
+The maximum copy number is impossed as a strong condition. As qp_B has two copies of its oriv, its maximum copy number is half that of qp_A.
+When the rate function depends on the number of copies, qp_B replicates faster.
+
+To test:
+ - Change copyNum and autoVolVal to describe it either amount or concentration
+ - Switch copyNumGateA and copyNumGateB between deterministic and stochastic
+ - Switch rateFunA and rateFunB between independent or dependent of the copy number. In the later case, the replication of plasmids with several copies of the oriv is faster
+ - Add randomness to the linear rate with rndParams
+*/
+
+include gro3
+
+iniNum := 10.0;
+copyNum := 100.0;
+//autoVolVal := "division";
+autoVolVal := "none";
+
+//rateFunA := "fun_constRate";
+rateFunA := "fun_linearRateA";
+copyNumGateA := "qga_copyNumExactA";
+//copyNumGateA := "qga_copyNumNoisyA";
+
+//rateFunB := "fun_constRate";
+rateFunB := "fun_linearRateB";
+copyNumGateB := "qga_copyNumExactB";
+//copyNumGateB := "qga_copyNumNoisyB";
+
+rndParams := {0.0,0.0};
+
+global_params([ seed := 133087, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := { 0.0, 0.0 }, ini_vol := 1.0  ]);
+cell_type([ name := "cell_A"
+	, strain := "str_A"
+	, qplasmids := {"qp_A", "qp_B"} 
+	, qplasmid_amounts := {iniNum, iniNum}
+	, qplasmids_as_conc := false
+]);
+
+
+//---replication
+function([ name := "fun_copyNumA", input := {"ov_A"}, type := "sum", params := { -1.0, copyNum }, rnd := "", rnd_params := {0.0, 10.0}, auto_vol := autoVolVal ]);
+qgate([ name := "qga_copyNumExactA", input := "ov_A", value := copyNum, operator := "<" ]);
+qgate([ name := "qga_copyNumNoisyA", input := "fun_copyNumA", operator := ">", value := 0.0 ]);
+
+function([ name := "fun_constRate", type := "const", params := {0.1} ]);
+function([ name := "fun_linearRateA", type := "sum", input := {"ov_A"}, params := {0.01}, rnd_params := rndParams ]);
+
+oriv([ name := "ov_A", gate := copyNumGateA, rate_fun := rateFunA ]);
+qplasmid([ name := "qp_A", oriVs := {"ov_A"} ]);
+
+function([ name := "fun_copyNumB", input := {"ov_B"}, type := "sum", params := { -1.0, copyNum }, rnd := "", rnd_params := {0.0, 10.0}, auto_vol := autoVolVal ]);
+qgate([ name := "qga_copyNumExactB", input := "ov_B", value := copyNum, operator := "<" ]);
+qgate([ name := "qga_copyNumNoisyB", input := "fun_copyNumB", operator := ">", value := 0.0 ]);
+
+function([ name := "fun_linearRateB", type := "sum", input := {"ov_B"}, params := {0.01}, rnd_params := rndParams ]);
+oriv([ name := "ov_B", gate := copyNumGateB, rate_fun := rateFunB ]);
+qplasmid([ name := "qp_B", oriVs := {"ov_B", "ov_B"} ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 1.0, coords := [ r := 3.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpA", input := {"qp_A"}, type := "log", params := {2.0} ]);
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red, target := "fun_qpA", scale := 0.1 ]);
+
+cells_plot([ name := "cplt_qpA_range", fields := { "qp_A" } , stats := "range" ]);
+cells_plot([ name := "cplt_qpB_range", fields := { "qp_B" } , stats := "range" ]);
+cells_plot([ name := "cplt_plas", fields := { "qp_A", "qp_B" } , stats := {"avg" } ]);
+cells_plot([ name := "cplt_orivs", fields := { "ov_A", "ov_B" } , stats := {"avg" } ]);

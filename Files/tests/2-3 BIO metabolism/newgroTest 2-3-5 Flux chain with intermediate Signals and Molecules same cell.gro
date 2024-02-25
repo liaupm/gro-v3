@@ -1,0 +1,113 @@
+/* To test the link between flux and gene expresison and chaining of them, alternating molecules and signals.
+Cells that sense signal A turn to the state marked by mol_A and produce signal B. The cells that sense B turn to mol_B state and produce signal C. Finally, the cells that sense signal C report it with mol_C.
+External pulses of signal A start the chain. It advances and ends due to signal consumption, degradation and dilution. 
+The cells can affect themselves and other cells in range.
+
+To test:
+ - Try different sensing sensitivities, both as simple thresholds or through sgate
+ - Change the emission and absorption params
+ - Change the diffusion coefficients
+*/
+
+include gro3
+
+molSynth := 10.5; 
+molDeg := 20.5; 
+thresholdVal := 2.0;
+
+
+selectedGateA := "mol_A";
+selectedGateB := "mol_B";
+selectedGateC := "mol_C";
+
+/*selectedGateA := "qga_sA";
+selectedGateB := "qga_sB";
+selectedGateC := "qga_sC";*/
+
+
+global_params([ seed := 133087, show_plots := true  ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := { 0.0, 0.00 }, ini_vol := 2.5 ]);
+cell_type([ name := "cell_A", strain := "str_A" ]);
+
+
+//---gene expression
+molecule([ name := "mol_A", times := { -molDeg, molSynth } ]);
+molecule([ name := "mol_B", times := { -molDeg, molSynth } ]);
+molecule([ name := "mol_C", times := { -molDeg, molSynth } ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.3, kdeg := 0.1, colour := _magenta, colour_sat := 10.0 ]);
+signal([ name := "s_B", kdiff := 0.3, kdeg := 0.1, colour := _cyan, colour_sat := 10.0 ]);
+signal([ name := "s_C", kdiff := 0.3, kdeg := 0.1, colour := _yellow, colour_sat := 10.0 ]);
+
+
+//---cell A
+qgate([ name := "qga_sA", input := "_conc_s_A", value := thresholdVal ]);
+
+flux([ name := "flux_AinA"
+	, sgate := "qga_sA"
+	, metabolite := "s_A"
+	, output := { "mol_A" }
+	, amount := -0.1
+	//, threshold := thresholdVal
+]);
+
+flux([ name := "flux_BoutA", gate := selectedGateA, metabolite := "s_B", amount := 50.0 ]);
+
+
+//---cell B
+qgate([ name := "qga_sB", input := "_conc_s_B", value := thresholdVal ]);
+
+flux([ name := "flux_BinB"
+	, sgate := "qga_sB"
+	, metabolite := "s_B"
+	, output := { "mol_B" }
+	, amount := -0.1
+	//, threshold := thresholdVal
+]);
+
+flux([ name := "flux_CoutB", gate := selectedGateB, metabolite := "s_C", amount := 50.0 ]);
+
+
+//---cell C
+qgate([ name := "qga_sC", input := "_conc_s_C", value := thresholdVal ]);
+
+flux([ name := "flux_CinC"
+	, sgate := "qga_sC"
+	, metabolite := "s_C"
+	, output := { "mol_C" }
+	, amount := -0.1
+	//, threshold := thresholdVal
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 300.0, coords := [ x := 0.0, y := 0.0, r := 200.0 ] ]);
+
+//---
+timer([ name := "t_A", period := 10.0 ]);
+
+signal_placer([ name := "sp_A"
+	, timer := "t_A"
+	, signals := {"s_A"}
+	, amount := 5000.0
+	, sources := 1.0
+	, coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := selectedGateA, rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := selectedGateB, rgb := _blue ]);
+cell_colour([ name := "ccol_red", gate := selectedGateC, rgb := _red ]);
+
+//---
+plot([ name := "plot_mols", fields := { "mol_A", "mol_B", "mol_C" }, stats := "avg" ]);
+plot([ name := "plot_signal", fields := { "_conc_s_A", "_conc_s_B", "_conc_s_C" }, stats := "avg" ]);
+plot([ name := "plot_gates", fields := { selectedGateA, selectedGateB, selectedGateC }, stats := "avg" ]);

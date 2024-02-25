@@ -1,0 +1,49 @@
+/*To test the effect of oriT multiplicity when two bplasmids that share the same orit compete for being selected for conjugation. 
+The ratio in conjugation events must match the ration in orit multiplicity. In this case, the bplasmids compete and not the orits. */
+
+include gro3
+
+copyNum := 20.0;
+iniCopies := 10;
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor", strain := "_str_nogrowth", plasmids := {"p_A", "p_B" } ]);
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth" ]);
+
+//---plasmids
+plasmid([ name := "p_A", oriTs := {"ot_A", "ot_A"} ]);
+plasmid([ name := "p_B", oriTs := {"ot_A"} ]);
+
+
+//---conjugation
+bgate([ name := "ga_not_otA", input := { "-ot_A" } ]);
+pilus([ name := "pil_A", donor_gate := "cell_donor", recipient_gate := "ga_not_otA", max_rate := 0.01 ]);
+oriT([ name := "ot_A", pilus := "pil_A", copy_dependent := true ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor", cell_types := {"cell_donor"}, amount := 50.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 500.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "p_A", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "p_B", rgb := _blue ]);
+cell_colour([ name := "ccol_red", gate := "cell_donor", rgb := _red ]);
+
+//---
+bgate([ name := "ga_gotPlasA", input := { "cell_recipient", "p_A" } ]);
+bgate([ name := "ga_gotPlasB", input := { "cell_recipient", "p_B" } ]);
+bgate([ name := "ga_gotAny", type := "OR", input := { "ga_gotPlasA", "ga_gotPlasB" } ]);
+
+pop_stat([ name := "stat_A", gate := "ga_gotAny", input := "p_A", stats := {"avg"} ]);
+pop_stat([ name := "stat_B", gate := "ga_gotAny", input := "p_B", stats := {"avg"} ]);
+plot([ name := "plot_avg", pop_fields := { "stat_A","stat_B" } ]);
+
+pop_function([ name := "pfun_ratio", type := "product", input := { "stat_A", "stat_B" }, params := { 1.0, -1.0 } ]);
+plot([ name := "plot_ratio", pop_fields := { "pfun_ratio" } ]);

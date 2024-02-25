@@ -1,0 +1,87 @@
+/*To test the effect of the duration of replication eclipse period when two plasmids compete. The plasmids have the same values for all the parameters, being the only difference the eclipse time. The plasmid with longer eclipse is less competitive and gets diluted.
+To test: 
+ - try different pairs of times, deterministic and stochastic
+ - compare one deterministic and the other stochastic with the same mean
+*/
+
+include gro3
+
+copyNum := 50.0;
+iniCopies := 25.0;
+
+//autoVol := "none";
+autoVol := "division";
+
+global_params([ seed := 653546, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_wt", growth_rate := { 0.01, 0.0 }, division_vol := 3.0, division_fraction := 0.5 ]);
+
+cell_type([ name := "cell_AB"
+	, strain := "str_wt"
+	, qplasmids := {"qp_A", "qp_B"} 
+	, qplasmid_amounts := { iniCopies, iniCopies }
+	//, qplasmids_as_concs := false
+]);
+
+
+//---replication
+copy_control([ name := "cc_AB", gate := "_ga_true", w := 0.00001 ]);
+
+function([ name := "fun_ovABall", input := { "ov_AB", "ov_AB_eclipse" }, auto_vol := autoVol ]);
+qgate([ name := "qga_copyNum_AB", input := "fun_ovABall", value := copyNum, operator := "<" ]);
+
+oriv([ name := "ov_AB"
+	, copy_controls := {"cc_AB"}
+	, gate := "qga_copyNum_AB"
+	, vmax := 1.0
+	, w := 0.1
+	, eclipse_marker := "ov_AB_eclipse"
+]);
+
+partition_system([ name := "ps_AB", gate := "_ga_true", fraction := 0.5, p := 0.5, vol_scaling := true ]);
+
+qplasmid([ name := "qp_A"
+	, partition_system := "ps_AB"
+	, oriVs := {"ov_AB"}
+	, copy_controls := {"cc_AB"}
+	, eclipse := { 1.0, 0.0 }
+	, eclipse_marker := "qp_A_eclipse"
+]);
+
+qplasmid([ name := "qp_B"
+	, partition_system := "ps_AB"
+	, oriVs := {"ov_AB"}
+	, copy_controls := {"cc_AB"}
+	, eclipse := { 10.0, 0.0 }
+	, eclipse_marker := "qp_B_eclipse"
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_AB", cell_types := { "cell_AB" }, amount := 100.0, coords := [ r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpAall", input := { "qp_A", "qp_A_eclipse" }, auto_vol := autoVol ]);
+function([ name := "fun_logPlasA", input := {"fun_qpAall"}, type := "log", params := {2.0}, auto_vol := "none" ]);
+cell_colour([ name := "ccol_green", gate := "qp_A", target := "fun_logPlasA", rgb := _green, scale := 0.5 ]);
+
+function([ name := "fun_qpBall", input := { "qp_B", "qp_B_eclipse" }, auto_vol := autoVol ]);
+function([ name := "fun_logPlasB", input := {"fun_qpBall"}, type := "log", params := {2.0}, auto_vol := "none" ]);
+cell_colour([ name := "ccol_red", gate := "qp_B_eclipse", target := "fun_logPlasB", scale := 0.5, rgb := _red ]);
+
+//---
+cells_plot([ name := "cplt_ovRange", fields := { "fun_ovABall" } , stats := {"avg", "min", "max"} ]);
+cells_plot([ name := "cplt_all", fields := { "fun_qpAall", "fun_qpBall" } , stats := {"avg"} ]);
+
+function([ name := "fun_qpA", input := {"qp_A"}, auto_vol := autoVol ]);
+function([ name := "fun_qpB", input := {"qp_B"}, auto_vol := autoVol ]);
+cells_plot([ name := "cplt_plas", fields := { "fun_qpA", "fun_qpB" } , stats := {"avg"} ]);
+
+function([ name := "fun_qpA_eclipse", input := {"qp_A_eclipse"}, auto_vol := autoVol ]);
+function([ name := "fun_qpB_eclipse", input := {"qp_B_eclipse"}, auto_vol := autoVol ]);
+cells_plot([ name := "cplt_eclipse", fields := { "fun_qpA_eclipse", "fun_qpB_eclipse" } , stats := {"avg"} ]);

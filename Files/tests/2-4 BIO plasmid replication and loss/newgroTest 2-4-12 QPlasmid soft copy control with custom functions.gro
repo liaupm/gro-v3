@@ -1,0 +1,111 @@
+/*To test the use of the built-in soft copy number control system, using copy_control. The reached copy number depends on the replication parameters but, as the rate is never a perfect zero, this depends on the growth rate too. The 4 plasmids are 4 ways to achieve the default soft behaviour with custom functions:
+
+ - A: cannonical without custom function
+ - B: manual function for active cc
+ - C: using the OriV directly without cc (valid when their multiplicity in the plasmid and gateis the same)
+ - D: using the active cc marker
+
+To test:
+ - Change the replication params (maxRate, oriW, ccW)
+ - Change the growth rate to assess its effect
+ - Set the ccGate to false or change selectedRateB to remove the control 
+ - Check that "cc_D_active" matches "cc_D" when the gate is true
+ - Check how the oscillations in volume cause oscillations in the amounts but the concentrations are not affected
+*/
+
+include gro3
+
+//---params
+iniAmount := 15.0;
+
+orivGate := "_ga_true";
+//orivGate := "_ga_false";
+
+ccGate := "_ga_true";
+//ccGate := "_ga_false";
+
+maxRate := 1.0E+2;
+oriW := 0.001;
+ccW:= 0.1 ;
+
+selectedRateB := "fun_controlB";
+//selectedRateB := "fun_nocontrolB";
+
+ccInputB := "fun_activeCcB";
+
+
+global_params([ seed := 9111032, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := { 0.01, 0.0001 } ]);	
+cell_type([ name := "cell_ABCD"
+	, strain := "str_A"
+	, qplasmids := { "qp_A", "qp_B", "qp_C", "qp_D" } 
+	, qplasmid_amounts := { iniAmount, iniAmount, iniAmount, iniAmount }
+	//, qplasmids_as_conc := false
+]);
+
+
+//---replication
+//A
+copy_control([ name := "cc_A", gate := ccGate, w := ccW ]);
+oriv([ name := "ov_A", gate := orivGate, copy_controls := {"cc_A"}, vmax := maxRate, w := oriW ]);
+qplasmid([ name := "qp_A", oriVs := {"ov_A"}, copy_controls := {"cc_A"} ]);
+
+//B
+copy_control([ name := "cc_B", gate := ccGate ]);
+function([ name := "fun_activeCcB", inputs := {"cc_B", ccGate}, type := "product" ]);
+function([ name := "fun_controlB", inputs := { "ov_B", ccInputB }, type := "exp_product", params := {maxRate, oriW, -ccW }, auto_vol := "division" ]);
+
+oriv([ name := "ov_B", gate := orivGate, rate_fun := selectedRateB ]);
+qplasmid([ name := "qp_B", oriVs := {"ov_B"}, copy_controls := {"cc_B"} ]);
+
+//C
+function([ name := "fun_controlC", inputs := {"ov_C", "ov_C"}, type := "exp_product", params := {maxRate, oriW, -ccW }, auto_vol := "division" ]);
+oriv([ name := "ov_C", gate := orivGate, rate_fun := "fun_controlC" ]);
+qplasmid([ name := "qp_C", oriVs := {"ov_C"} ]);
+
+//D
+copy_control([ name := "cc_D", gate := ccGate, active_marker := "cc_D_active" ]);
+function([ name := "fun_controlD", inputs := { "ov_D", "cc_D_active" }, type := "exp_product", params := { maxRate, oriW, -ccW }, auto_vol := "division" ]);
+oriv([ name := "ov_D", gate := orivGate, rate_fun := "fun_controlD" ]);
+qplasmid([ name := "qp_D", oriVs := {"ov_D"}, copy_controls := {"cc_D"} ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_ABCD", cell_types := { "cell_ABCD" }, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpAlog", input := {"qp_A"}, type := "log", params := {2.0} ]);
+cell_colour([ name := "ccol_green", gate := "qp_A", rgb :=_green, target := "fun_qpAlog", scale := 0.1 ]);
+
+function([ name := "fun_qpBlog", input := {"qp_B"}, type := "log", params := {2.0} ]);
+cell_colour([ name := "ccol_red", gate := "qp_B", rgb := _red, target := "fun_qpBlog", scale := 0.1 ]);
+
+function([ name := "fun_qpClog", input := {"qp_C"}, type := "log", params := {2.0} ]);
+cell_colour([ name := "ccol_blue", gate := "qp_C", rgb := _blue, target := "fun_qpClog", scale := 0.1 ]);
+
+function([ name := "fun_qpDlog", input := {"qp_D"}, type := "log", params := {2.0} ]);
+cell_colour([ name := "ccol_grey", gate := "qp_D", rgb := _white, target := "fun_qpDlog", scale := 0.1 ]);
+
+//---
+//cells_plot([ name := "cplt_qpA", fields := { "qp_A" } , stats := {"avg", "min", "max"} ]);
+//cells_plot([ name := "cplt_qpB", fields := { "qp_B" } , stats := {"avg", "min", "max"} ]);
+//cells_plot([ name := "cplt_qpC", fields := { "qp_C" } , stats := {"avg", "min", "max"} ]);
+cells_plot([ name := "cplt_ccD", fields := { "ov_D", "cc_D", "cc_D_active" } , stats := {"avg"} ]);
+
+cells_plot([ name := "cplt_plas", fields := { "qp_A", "qp_B", "qp_C", "qp_D" } , stats := {"avg"} ]);
+cells_plot([ name := "cplt_oris", fields := { "ov_A", "ov_B", "ov_C", "ov_D" } , stats := {"avg"} ]);
+
+function([ name := "fun_qpA_conc", inputs := {"qp_A"}, auto_vol := "division" ]);
+function([ name := "fun_qpB_conc", inputs := {"qp_B"}, auto_vol := "division" ]);
+function([ name := "fun_qpC_conc", inputs := {"qp_C"}, auto_vol := "division" ]);
+function([ name := "fun_qpD_conc", inputs := {"qp_D"}, auto_vol := "division" ]);
+cells_plot([ name := "cplt_concs", fields := { "fun_qpA_conc", "fun_qpB_conc", "fun_qpC_conc", "fun_qpD_conc" } , stats := {"avg"} ]);
+
+//cells_plot([ name := "cplt_vol", fields := { "_volume" } , stats := {"avg"} ]);
+//cells_plot([ name := "cplt_ranges", fields := { "fun_qpA_conc", "fun_qpB_conc", "fun_qpC_conc", "fun_qpD_conc" } , stats := "range" ]);

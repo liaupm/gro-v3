@@ -1,0 +1,37 @@
+/*Just a bplasmid spontaneous appearance using a mutation and a mutation_process */
+
+include gro3
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", strain := "_str_nogrowth" ]);
+
+//---gene expression
+operon([ name := "op_A" ]);
+bplasmid([ name := "bp_A", operons := {"op_A"} ]);
+
+
+//---mutation
+mutation([ name := "mut_A", plasmids := { "bp_A" } , amounts := { 1 } ]);
+
+mutation_process([ name := "mutp_A"
+	, gate := "_ga_true"
+	, mutations := {"mut_A"}
+	, rate := 0.01
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "bp_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "op_A", rgb := _red ]);
+
+//---
+cells_plot([ name := "cplt_q", fields := { "bp_A", "op_A" , "bp_A", "op_A" } , stats := {"avg"} ]);

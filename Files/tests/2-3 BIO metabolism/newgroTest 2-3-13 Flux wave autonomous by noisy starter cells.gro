@@ -1,0 +1,81 @@
+/*Spatio-temporal pattern produced by a incoherent loop at multicellular level, using a diffusible signal. The cells that sense the signal first produce more signal but soon enter a cooldown stage when they do not respond. This produces waves.
+No external starter is needed. The cells are noisy so that some of them spontaneously produce the signal required to start the pattern. There are usually multiple active foci at the same time. Waves originate from all of them and fuse. Foci appear and dissapear all the time as the noisy state of the cells change. The inertia of the pattern makes new waves to be produced even after a focus has dissapeared. The new foci gradually distort
+the shapes, moving the origin of the waves towards them. 
+To test: change the diffusion and degradation coefficients, the emitted amount, the threshold, use randomness or alter the noise
+*/
+
+include gro3
+
+cooldownActi := 1.0;
+cooldownDeg := -20.0;
+
+sdiff := 0.3;
+sdeg := 0.3;
+
+t_degradation_wait := 0.1;
+
+
+global_params([ seed := 133087 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := 0.01 ]);
+cell_type([ name := "cell_A", strain := "str_A", bplasmids := {"bp_starter"} ]);
+
+
+//---gene expression
+molecule([ name := "mol_cooldown", times := { cooldownDeg, cooldownActi }, times_var := { 0.1, 0.1 } ]);
+molecule([ name := "mol_reporter", times := { -1.0, 0.1 }, times_var := { 0.0, 0.0 } ]);
+molecule([ name := "mol_starter", times := { -10.0, 10.0 }, times_var := { 0.0, 0.0 } ]);
+
+randomness([ name := "rnd_starter", inertia := 0.5, inheritance := 0.5, sampling_time := 100.0 ]);
+regulation([ name := "nreg_starter", rnd := "rnd_starter", acti_on := { 0.0, 0.2 }, acti_off := { 0.0, 0.0 } ]);
+operon([ name := "op_starter", regulation :=  "nreg_starter", output := {"mol_starter"} ]);
+bplasmid([ name := "bp_starter", operons := {"op_starter"} ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := sdiff, kdeg := sdeg, colour := _magenta, colour_sat := 10.0 ]);
+
+bgate([ name := "bga_ready", input := {"-mol_cooldown"} ]);
+qgate([ name := "qga_A", input := "_conc_s_A", value := 0.01 ]);
+
+flux([ name := "flux_Aout"
+	, metabolite := "s_A"
+	, gate := "bga_ready"
+	, sgate := "qga_A"
+	, output := {"mol_cooldown", "mol_reporter"}
+	, amount := 100.0
+]);
+
+flux([ name := "flux_Ain"
+	, metabolite := "s_A"
+	, gate := "mol_cooldown"
+	, amount := -1.0
+]);
+
+bgate([ name := "bga_start", input := {"mol_starter", "-mol_cooldown"} ]);
+flux([ name := "flux_Astarter"
+	, metabolite := "s_A"
+	, gate := "mol_starter"
+	, output := {"mol_cooldown", "mol_reporter"}
+	, amount := 1000.0
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 200.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green"
+	, gate := "mol_reporter"
+	, rgb := _green
+	, mode := "delta" 
+	, intensity := { 1.0, 0.2 }
+	, delta := { 0.2, 0.01 }
+]);
+
+cell_colour([ name := "ccol_red", gate := "mol_starter", rgb := _red ]);

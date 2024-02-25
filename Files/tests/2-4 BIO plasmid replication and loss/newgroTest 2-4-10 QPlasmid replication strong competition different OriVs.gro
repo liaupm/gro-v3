@@ -1,0 +1,83 @@
+/*To test the effect of different replication rates in competition and comparison to oriv multiplicity. The "A group" of plasmids have different orivs with different replication rates. A and A2 belong to the same incompatibility group because they add up to the same copy number pool. The "B group" have the same oriv but plasmid B2 has two copies. 
+Rate functions and copy numbers in concentration.
+
+To test:
+ - Change copyNum and iniCopies
+ - Use asymmetric or binomial partition instead of exact symmetric one
+ - Change rateBase and rateRatio. When rateRatio equals the multiplicity of B2 (2), the behaviour of the two pairs of plasmdis is similar but not exactly the same due to the strong copy number limit. If the copy limit is removed or it is described in terms of plasmids ("qga_copyNum_plasB") instead of orivs ( "qga_copyNum_ovB"), then the behaviour is equivalent.
+*/
+
+include gro3
+
+copyNum := 50.0;
+iniCopies := 10.0;
+
+rateBase := 0.1;
+rateRatio := 2.0;
+
+//copyGateB := "qga_copyNum_ovB";
+copyGateB := "qga_copyNum_plasB";
+
+
+global_params([ seed := 133087, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_AB"
+	, strain := "_str_slow"
+	, qplasmids := {"qp_A", "qp_A2", "qp_B", "qp_B2" } 
+	, qplasmid_amounts := { iniCopies, iniCopies, iniCopies, iniCopies }
+]);
+
+
+//---replication
+function([ name := "fun_concA", input := { "ov_A", "ov_A2" }, params := {1.0, 1.0}, auto_vol := "division" ]);
+qgate([ name := "qga_copyNum_ovA", input := "fun_concA", value := copyNum, operator := "<" ]);
+
+function([ name := "fun_rateA", input := { "ov_A" }, type := "sum", params := {rateBase }, auto_vol := "division" ]);
+oriv([ name := "ov_A", gate := "qga_copyNum_ovA", rate_fun := "fun_rateA" ]);
+function([ name := "fun_rateA2", input := {"ov_A2"}, type := "sum", params := { rateBase * rateRatio }, auto_vol := "division" ]);
+oriv([ name := "ov_A2", gate := "qga_copyNum_ovA", rate_fun := "fun_rateA2" ]);
+
+partition_system([ name := "ps_A", gate := "_ga_true", fraction := 0.5 ]);
+qplasmid([ name := "qp_A", partition_system := "ps_A", oriVs := {"ov_A"} ]);
+qplasmid([ name := "qp_A2", partition_system := "ps_A", oriVs := {"ov_A2"} ]);
+
+//---
+function([ name := "fun_concB", input := { "ov_B" }, auto_vol := "division" ]);
+qgate([ name := "qga_copyNum_ovB", input := "fun_concB", value := copyNum * 2, operator := "<" ]);
+
+function([ name := "fun_concPlasB", input := { "qp_B", "qp_B2" }, auto_vol := "division" ]);
+qgate([ name := "qga_copyNum_plasB", input := "fun_concPlasB", value := copyNum, operator := "<" ]);
+
+function([ name := "fun_rateB", input := {"ov_B"}, type := "sum", params := {rateBase}, auto_vol := "division" ]);
+oriv([ name := "ov_B", gate := copyGateB, rate_fun := "fun_rateB" ]);
+
+partition_system([ name := "ps_B", gate := "_ga_true", fraction := 0.5 ]);
+qplasmid([ name := "qp_B", partition_system := "ps_B", oriVs := {"ov_B"} ]);
+qplasmid([ name := "qp_B2", partition_system := "ps_B", oriVs := {"ov_B", "ov_B"} ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_AB", cell_types := { "cell_AB" }, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 10.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red ]);
+cell_colour([ name := "ccol_green", gate := "qp_B", rgb := _green ]);
+
+//---
+cells_plot([ name := "cplt_qpA", fields := { "qp_A" } , stats := {"avg", "min", "max"} ]);
+//cells_plot([ name := "cplt_qpA2", fields := { "qp_A2" } , stats := {"avg", "min", "max"} ]);
+//cells_plot([ name := "cplt_qpB", fields := { "qp_B" } , stats := {"avg", "min", "max"} ]);
+
+cells_plot([ name := "cplt_plas", fields := { "qp_A", "qp_A2", "qp_B", "qp_B2" } , stats := {"avg"} ]);
+//cells_plot([ name := "cplt_orivs", fields := { "ov_A", "ov_B" } , stats := {"avg"} ]);
+
+cells_plot([ name := "cplt_AB", fields := { "fun_concA", "fun_concB" } , stats := {"avg"} ]);
+
+bgate([ name := "bga_A", input := {"qp_A"} ]);
+bgate([ name := "bga_B", input := {"qp_B"} ]);
+cells_plot([ name := "cplt_gates", fields := { "bga_A", "bga_B" } , stats := {"avg"} ]);

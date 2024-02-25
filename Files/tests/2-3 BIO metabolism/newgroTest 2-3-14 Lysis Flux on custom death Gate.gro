@@ -1,0 +1,52 @@
+/*To test lysis fluxes, which are applied only once, on cell death. The cells die when "mol_A" is degraded (high variabiity), releasing their contents ("s_lysis")
+The neighbouring cells turn yellow when sensing the contents of the lysed cells.
+
+To test: try different ways to kill the bacteria: deathGate or growth rate threshold, with flux or custom function
+*/
+
+include gro3
+
+global_params([ seed := 133087, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+molecule([ name := "mol_A", times := { -300.0, 100.0 }, times_var := { 100.0, 10.0 } ]);
+bgate([ name := "ga_notMolA", input := {"-mol_A"} ]);
+
+//strain([ name := "str_A", death_gate := "ga_notMolA", death_threshold := 10.0, growth_rate := 0.0 ]);
+//strain([ name := "str_A", death_threshold := 0.0, growth_fun := "flux_death" ]);
+//strain([ name := "str_A", death_threshold := 0.0, growth_fun := "_biomass" ]);
+strain([ name := "str_A", death_threshold := 0.0, growth_rate := 0.0 ]);
+cell_type([ name := "cell_A", strain := "str_A", molecules := {"mol_A"} ]);
+
+
+//---metabolism
+signal([ name := "s_lysis", kdiff := 0.1, kdeg := 0.1, colour := _green, colour_sat := 1.0 ]);
+
+
+flux([ name := "flux_lysis"
+	, signal := "s_lysis"
+	, gate := "_ga_true"
+	, type := "lysis"
+	, amount := 10.0
+]);
+
+flux([ name := "flux_death", gate := "ga_notMolA", signal := "_biomass", amount := -1.0 ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 300.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);
+
+qgate([ name := "qga_sA", input := "_conc_s_lysis", value := 0.1 ]);
+cell_colour([ name := "ccol_red", gate := "qga_sA", rgb := _red ]);
+
+
+plot([ name := "plot_mol", fields := {"flux_death", "_biomass", "_gr"}, gate := "mol_A", stats := "avg" ]);
+plot([ name := "plot_noMol", fields := {"flux_death", "_biomass", "_gr"}, gate := "ga_notMolA", stats := "avg" ]);
+plot([ name := "plot_biomass", fields := {"_biomass"}, gate := "ga_notMolA", stats := "avg" ]);

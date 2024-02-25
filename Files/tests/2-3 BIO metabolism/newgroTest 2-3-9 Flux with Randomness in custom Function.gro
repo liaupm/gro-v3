@@ -1,0 +1,71 @@
+/*To test the addition of randomness to custom fluxes. Randomness can modify the absorbed/emitted amount but never produce a non-zero absortion flux when there is no signal in the medium.
+To test:
+ - Use "fun_A" as the "flux_Bout" custom function. There will be some noisy basal production of signal B in the absence of A
+ - Use "fun_A2" as the "flux_Bout" custom function. No noisy behaviour is observed when the direction of "flux_Ain" is locked to absorption, because the absorption in the absence of signal is always zero. If not locked, some noisy cells produce signal that other cells can absorb and there is emission of B.
+*/
+
+include gro3
+
+global_params([ seed := 130094, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := 0.0, ini_vol := 2.5 ]);
+cell_type([ name := "cell_A", strain := "str_A" ]);
+//cell_type([ name := "cell_B", strain := "str_A" ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.05, colour := _magenta, colour_sat := 1.0 ]);
+signal([ name := "s_B", kdiff := 0.2, kdeg := 0.05, colour := _cyan, colour_sat := 1.0 ]);
+
+//---
+randomness([ name := "rnd_A", inheritance := 0.9, inertia := 0.9, sampling_time := 20.0 ]);
+function([ name := "fun_A", type := "sum", input := {"_conc_s_A"}, rnd_params := { 0.0, 0.1 } ]);
+
+qgate([ name := "qga_A", input := "_conc_s_A", value := 1.0 ]);
+
+flux([ name := "flux_Ain"
+	, metabolite := "s_A"
+	//, sgate := "qga_A"
+	, amount_fun := "fun_A"
+	//, amount := -0.1
+	//, direction := -1
+	, inverted := true
+]);
+
+function([ name := "fun_A2", input := {"flux_Ain"}, params := {-10.0} ]);
+qgate([ name := "qga_A2", input := "fun_A2", value := 10.0 ]);
+
+flux([ name := "flux_Bout"
+	, metabolite := "s_B"
+	//, sgate := "qga_A2"
+	, amount_fun := "fun_A2"
+	//, amount_fun := "fun_A"
+	//, inverted := true
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 500.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+//---
+timer([ name := "t_A", period := 50.0 ]);
+
+signal_placer([ name := "sp_A"
+	, timer := "t_A"
+	, signals := {"s_A"}
+	, amount := 3000.0
+	, sources := 1.0
+	, coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "qga_A", rgb := _green ]);
+
+plot([ name := "plot_rnd", fields := { "_rnd_fun_A" }, stats := { "avg", "min", "max" } ]);
+plot([ name := "plot_fun", fields := { "fun_A" }, stats := { "avg", "min", "max" } ]);
+plot([ name := "plot_conc", fields := { "_conc_s_A" }, stats := { "avg", "min", "max" } ]);

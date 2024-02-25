@@ -1,0 +1,75 @@
+/*To test the reversible mutations with bplasmids. plasmids and amounts fields on mutation; gate, rate, rate_fun, mutations and mutations_probs fields of mutation_process
+To test:
+ - Try different rateRatio and check that the resulting ratios match 
+ - Assign non-null probability to the mutations that just remove the plasmid to test their capacity to bias the ratio towards one of the plasmids even when rateRatio is 1
+ - Uncomment the placers for other cell types to check that mutations only occur when their gate holds
+ - Check that the count of plasmid contents (operon and regulation) change properly with them
+*/
+
+include gro3
+
+selectedStrain := "_str_slow";
+mutRate := 0.01;
+rateRatio := 2.0;
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", strain := selectedStrain, bplasmids := {"bp_A"} ]);
+cell_type([ name := "cell_B", strain := selectedStrain, bplasmids := {"bp_B"} ]);
+cell_type([ name := "cell_0", strain := selectedStrain, bplasmids := {} ]);
+
+
+//---plasmids
+operon([ name := "op_same" ]);
+operon([ name := "op_notSame" ]);
+bplasmid([ name := "bp_A", operons := {"op_same", "op_notSame"} ]);
+bplasmid([ name := "bp_B", operons := {"op_same", "op_notSame", "op_notSame" } ]);
+
+
+//---mutations
+mutation([ name := "mut_AtoB", plasmids := { "bp_A", "bp_B" }, amounts := { -1, 1 } ]);
+mutation([ name := "mut_BtoA", plasmids := { "bp_A", "bp_B" }, amounts := { 1, -1 } ]);
+mutation([ name := "mut_noA", plasmids := { "bp_A" }, amounts := { -1 } ]);
+mutation([ name := "mut_noB", plasmids := { "bp_B" }, amounts := { -1 } ]);
+
+function([ name := "fun_bpA", type := "sum", input := {"bp_A"}, params := { mutRate } ]);
+mutation_process([ name := "mutp_AtoB", gate := "bp_A"
+	, gate := "bp_A"
+	//, rate_fun := "fun_bpA"
+	, rate := mutRate
+	, mutations := { "mut_AtoB", "mut_noA" }
+	, mutation_probs := { 1.0, 0.0 } 
+]);
+
+function([ name := "fun_bpB", type := "sum", input := {"bp_B"}, params := { mutRate * rateRatio } ]);
+mutation_process([ name := "mutp_BtoA"
+	, gate := "bp_B"
+	//, rate_fun := "fun_bpB"
+	, rate := mutRate * rateRatio
+	, mutations := { "mut_BtoA", "mut_noB" }
+	, mutation_probs := { 1.0, 0.0 } 
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A"}, amount := 50.0, coords := [ x := -200.0, y := -200.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B" }, amount := 50.0, coords := [ x := 200.0, y := 200.0, r := 100.0 ] ]);
+//cell_placer([ name := "cp_0", cell_types := {"cell_0" }, amount := 10.0, coords := [ x := 0.0, y := 0.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_red", gate := "bp_A", rgb := _red ]);
+cell_colour([ name := "ccol_green", gate := "bp_B", rgb := _green ]);
+
+//---
+plot([ name := "cplt_plas", fields := { "bp_A", "bp_B"  }, stats := { "avg" } ]);
+plot([ name := "plot_content", fields := { "op_same", "op_notSame" }, stats := "avg" ]);
+
+pop_stat([ name := "stat_bpA", input := "bp_A", stats := "avg" ]);
+pop_stat([ name := "stat_bpB", input := "bp_B", stats := "avg" ]);
+pop_function([ name := "pfun_ratioAtoB", type := "product", input := {"stat_bpA", "stat_bpB" }, params := { 1.0, -1.0 }  ]);
+plot([ name := "plot_ratioAtoB", pop_fields := {"pfun_ratioAtoB" } ]);

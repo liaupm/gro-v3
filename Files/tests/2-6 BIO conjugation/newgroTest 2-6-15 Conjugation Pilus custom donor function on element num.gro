@@ -1,0 +1,67 @@
+/*To test the use of custom functions for the maximum conjugation rate (donor_fun field of pilus). The conjugation depends linearly with the copy number of the "op_speed" operon. 
+As "cell_donorFast" has three copies, its conjugation speed must be three times that of "cell_donorSlow". The speed of "cell_donorNoconj" is zero, as it has no "op_speed", so that it does not produce conjugations. Only the original donors can transmit the plasmid, not the transconjugants.
+
+To test: change the custom function, its params or change the copy numbe of the operon" */
+
+include gro3
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donorFast", strain := "_str_nogrowth", plasmids := {"p_fast"} ]);
+cell_type([ name := "cell_donorSlow", strain := "_str_nogrowth", plasmids := {"p_slow"} ]);
+cell_type([ name := "cell_donorNoconj", strain := "_str_nogrowth", plasmids := {"p_noconj"} ]);
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth" ]);
+
+//---plasmids
+plasmid([ name := "p_fast", oriTs := {"ot_A"}, operons := {"op_speed", "op_speed", "op_speed"} ]);
+plasmid([ name := "p_slow", oriTs := {"ot_A"}, operons := {"op_speed"} ]);
+plasmid([ name := "p_noconj", oriTs := {"ot_A"}, operons := {} ]);
+
+
+//---conjugation
+operon([ name := "op_speed" ]);
+function([ name := "fun_donor", input := {"op_speed"}, params := {0.01, 0.0} ]);
+bgate([ name := "ga_donor", type := "OR", input := { "cell_donorFast", "cell_donorSlow", "cell_donorNoconj" } ]);
+bgate([ name := "ga_noPlas", input := {"-ot_A"} ]);
+
+pilus([ name := "pil_A"
+	, donor_gate := "ga_donor"
+	, recipient_gate := "ga_noPlas"
+	, donor_fun := "fun_donor"
+	//, max_rate := { 0.0, 0.1 }
+]);
+
+oriT([ name := "ot_A", pilus := "pil_A" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_fast", cell_types := {"cell_donorFast"}, amount := 30.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+cell_placer([ name := "cp_slow", cell_types := {"cell_donorSlow"}, amount := 30.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+cell_placer([ name := "cp_noconj", cell_types := {"cell_donorNoconj"}, amount := 30.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 1000.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "p_fast", rgb := _green, intensity := 0.5 ]);
+cell_colour([ name := "ccol_red", gate := "p_slow", rgb := _red, intensity := 0.5 ]);
+cell_colour([ name := "ccol_blue", gate := "p_noconj", rgb := _blue, intensity := 0.5 ]);
+cell_colour([ name := "ccol_grey", gate := "ga_donor", rgb := _white ]);
+
+//---
+bgate([ name := "ga_gotFast", input := { "cell_recipient", "p_fast" } ]);
+bgate([ name := "ga_gotSlow", input := { "cell_recipient", "p_slow" } ]);
+bgate([ name := "ga_gotNoconj", input := { "cell_recipient", "p_noconj" } ]);
+bgate([ name := "ga_gotAny", type := "OR", input := { "ga_gotFast", "ga_gotSlow", "ga_gotNoconj" } ]);
+
+pop_stat([ name := "stat_fast", gate := "ga_gotAny", input := "p_fast", stats := {"avg"} ]);
+pop_stat([ name := "stat_slow", gate := "ga_gotAny", input := "p_slow", stats := {"avg"} ]);
+pop_stat([ name := "stat_noconj", gate := "ga_gotAny", input := "p_noconj", stats := {"avg"} ]);
+plot([ name := "plot_avg", pop_fields := { "stat_fast", "stat_slow", "stat_noconj" } ]);
+
+pop_function([ name := "pfun_ratioFast", type := "product", input := { "stat_fast", "stat_slow" }, params := { 1.0, -1.0 } ]);
+pop_function([ name := "pfun_ratioNoconj", type := "product", input := {"stat_noconj", "stat_slow"}, params := { 1.0, -1.0 } ]);
+plot([ name := "plot_ratios", pop_fields := { "pfun_ratioFast", "pfun_ratioNoconj" } ]);

@@ -1,0 +1,52 @@
+/*To test the physical features of the cells (ini_vol, division_vol, division_fraction and division_rotation) as fields of the Strain element. 
+Each of them can be set in four ways: deterministic value, scaling params, custom distribution by reference or direct distribution dictionary. 
+To test, uncomment one line at a time and play with the values 
+Test the minimum possible volume (sphere)*/
+
+include gro3
+
+global_params([ seed := 6456 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+myDist1 := [ type := "uniform", params := { 4.0, 4.0 } ];
+distribution([ name := "dist_custom1", type := "uniform", params := { 1.5, 1.6 } ]);
+myDist2 := [ type := "uniform", params := { 0.5, 0.5 } ];
+distribution([ name := "dist_custom2", type := "uniform", params := { 0.5, 0.6 } ]);
+myDist3 := [ type := "normal", params := { 0.0, 0.5 } ];
+distribution([ name := "dist_custom3", type := "normal", params := { -1.0, 1.0 } ]);
+
+strain([ name := "str_custom"
+	, growth_rate := { 0.034, 0.0 }
+	//, ini_vol := 0.0
+	//, ini_vol := { 1.0, 1.0 } 
+	//, ini_vol_params := { 2.35, 0.3 } 
+	//, ini_vol_dist := myDist1
+	//, ini_vol_dist := "dist_custom1"
+	
+	//, division_vol := 0.0
+	//, division_vol := { 1.14, 2.0 }
+	//, division_vol_dist := myDist1
+	//, division_vol_dist := "dist_custom1"
+	
+	//, division_fraction := 0.9
+	//, division_fraction_params := { 0.5,  0.2 }
+	//, division_fraction_dist := myDist2
+	//, division_fraction_dist := "dist_custom2"
+	
+	//, division_rotation := 4.5
+	//, division_rotation := { 0.0, 0.5 }
+	//, division_rotation_dist := myDist3
+	//, division_rotation_dist := "dist_custom3"
+]);
+
+cell_type([ name := "cell_A", strain := "str_custom" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+//---visualization
+cell_colour([ name := "ccol_green", rgb := _green ]);

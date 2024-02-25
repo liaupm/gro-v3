@@ -1,0 +1,86 @@
+/*To test the conjugation of qplasmids and the existence of an eclipse period after the event (replicaton from the orit) in both donor and recipient. The duraion of the eclipse is compared to a reporter molecule "mol_rep", which degradation time matches the eclipse time. Mutations on replication fom the orit can be optionally be used to remove the eclipse period from the donor or the recipient selectively and even to make its existence stochastic. 
+With a single copy and without replication for simplicity
+
+To test:
+ - The default behaviour is having an eclipse period of eclipseTime at both donor and recipient cells if bConjEclipse is true. Change the eclipse time and switch bConjEclipse.
+ - Set noEclipseProbDonor to 1.0 to get the eclipse period at the recipient side only
+ - Set noEclipseProbRecipient to 1.0 to get the eclipse period at the donor side only. bMutEclipse must be false; if true, there is eclipse
+ - Set sameProbDonor to 1.0 to get the same result as the default conjugation without mutation. With or without eclipse depending on bMutEclipse
+*/
+
+include gro3
+
+
+eclipseTime := 20.0;
+bConjEclipse := true;
+
+noEclipseProbDonor := 0.0;
+noEclipseProbRecipient := 0.0;
+sameProbDonor := 0.0;
+
+bMutEclipse := false;
+
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor", strain := "_str_nogrowth", qplasmids := {"qp_A"}, qplasmid_amounts := {1.0}, qplasmids_as_concs := false  ]);
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth", plasmids := {"bp_rep"} ]);
+
+//---plasmids
+bplasmid([ name := "bp_rep", operons := {"op_rep"} ]);
+qplasmid([ name := "qp_A"
+	, oriTs := {"ot_A"}
+	, eclipse := { eclipseTime, 0.0 }
+	, eclipse_marker := "qp_A_eclipse"
+	, repli_mutations := { "mutp_noeclipseDonor", "mutp_noeclipseRecipient", "mutp_sameDonor" }
+	, repli_mut_keys := { 2, 2, 2 }
+]);
+
+
+//---gene expression
+molecule([ name := "mol_rep", times := { -eclipseTime, 0.001 } ]);
+operon([ name := "op_rep", gate := "ev_recipient", output := { "mol_rep" } ]);
+
+
+//---conjugation
+bgate([ name := "bga_notA", input := {"-qp_A"} ]);
+pilus([ name := "pil_A"
+	, donor_gate := "cell_donor"
+	, recipient_gate := "bga_notA"
+	, max_rate := 0.01
+]);
+
+oriT([ name := "ot_A", pilus := "pil_A", eclipse := bConjEclipse, recipient_event := "ev_recipient", mutation_keys := {2} ]);
+
+
+//---mutation
+mutation([ name := "mut_null", plasmids := {}, amounts := {} ]);
+mutation([ name := "mut_A", plasmids := {"qp_A"}, amounts := {1} ]);
+mutation([ name := "mut_eclipseA", plasmids := {"qp_A", "qp_A"}, amounts := {-1, 1} ]);
+
+mutation_process([ name := "mutp_noeclipseDonor", mutations := {"", "mut_null"}, rate := noEclipseProbDonor, eclipse := bMutEclipse ]);
+mutation_process([ name := "mutp_noeclipseRecipient", mutations := {"mut_A", ""}, rate := noEclipseProbRecipient, eclipse := bMutEclipse ]);
+mutation_process([ name := "mutp_sameDonor", mutations := {"", "mut_eclipseA"}, rate := sameProbDonor, eclipse := bMutEclipse ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor", cell_types := {"cell_donor"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, mix := true, amount := 200.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+bgate([ name := "bga_received", input := {"-cell_donor", "qp_A"} ]);
+cell_colour([ name := "ccol_green", gate := "qp_A", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "mol_rep", rgb := _blue ]);
+cell_colour([ name := "ccol_red", gate := "cell_donor", rgb := _red ]);
+
+plot([ name := "cplt_recipient", gate := "cell_recipient", fields := {"qp_A", "qp_A_eclipse"}, stats := {"avg"} ]);
+plot([ name := "cplt_donor", gate := "cell_donor", fields := {"qp_A", "qp_A_eclipse"}, stats := {"avg"} ]);
+//plot([ name := "cplt_rep", gate := "cell_recipient", fields := {"mol_rep"}, stats := {"avg"} ]);
+plot([ name := "cplt_both", gate := "cell_recipient", fields := { "qp_A", "mol_rep" }, stats := {"avg"} ]);
+plot([ name := "cplt_ev", fields := {"ev_recipient"}, stats := {"sum"} ]);
+

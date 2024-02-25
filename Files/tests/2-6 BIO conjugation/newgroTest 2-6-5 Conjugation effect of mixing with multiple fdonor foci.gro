@@ -1,0 +1,76 @@
+/*To test the effect of spatial structue and mixing in conjugation effective rate. The colonies with multiple donor foci have a higher effective conjugation rate. As in gro2 paper. */
+
+include gro3
+
+distance := 600.0;
+
+global_params([ seed := 877733, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor", strain := "_str_slow", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_recipient1", strain := "_str_slow" ]);
+cell_type([ name := "cell_recipient2", strain := "_str_slow" ]);
+cell_type([ name := "cell_recipient3", strain := "_str_slow" ]);
+
+
+//---conjugation
+bgate([ name := "bga_noPlas", input := { "-p_A" } ]);
+
+pilus([ name := "pil_A"
+	, donor_gate := "cell_donor"
+	, recipient_gate := "bga_noPlas"
+	, max_rate := { 0.1, 0.0 }
+	, neighbours_w := 10.0
+	, vol_scaling := false
+]);
+
+oriT([ name := "ot_A", pilus := "pil_A", recipient_event := "ot_A_recipientEv" ]);
+plasmid([ name := "p_A", oriTs := {"ot_A"} ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor1", cell_types := {"cell_donor"}, amount := 500.0, coords := [ x := -distance, y := -distance, r := 100.0 ] ]);
+cell_placer([ name := "cp_recipient1", cell_types := {"cell_recipient1"}, amount := 500.0, coords := [ x := -distance, y := -distance, r := 400.0 ] ]);
+
+//---
+cell_placer([ name := "cp_donor2a", cell_types := {"cell_donor"}, amount := 250.0, coords := [ x := distance - 150.0, y := -distance, r := 100.0 ] ]);
+cell_placer([ name := "cp_donor2b", cell_types := {"cell_donor"}, amount := 250.0, coords := [ x := distance + 150.0, y := -distance, r := 100.0 ] ]);
+cell_placer([ name := "cp_recipient2", cell_types := {"cell_recipient2"}, amount := 500.0, coords := [ x := distance, y := -distance, r := 350.0 ] ]);
+
+//---
+cell_placer([ name := "cp_donor3", cell_types := {"cell_donor"}, amount := 500.0, coords := [ x := 0.0, y := distance, r := 400.0 ] ]);
+cell_placer([ name := "cp_recipient3", cell_types := {"cell_recipient3"}, amount := 500.0, coords := [ x := 0.0, y := distance, r := 400.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "ot_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "cell_donor", rgb := _red ]);
+
+bgate([ name := "ga_recipient", type := "OR", input := { "cell_recipient1", "cell_recipient2", "cell_recipient3" } ]);
+cell_colour([ name := "ccol_dark", gate := "ga_recipient", rgb := _blue, intensity := 0.75 ]);
+
+//---
+bgate([ name := "ga_gotPlas1", input := { "cell_recipient1", "p_A" } ]);
+bgate([ name := "ga_gotPlas2", input := { "cell_recipient2", "p_A" } ]);
+bgate([ name := "ga_gotAny", type := "OR", input := { "ga_gotPlas1", "ga_gotPlas2" } ]);
+
+pop_stat([ name := "stat_1", gate := "cell_recipient1", input := "p_A", stats := {"avg"} ]);
+pop_stat([ name := "stat_2", gate := "cell_recipient2", input := "p_A", stats := {"avg"} ]);
+pop_stat([ name := "stat_3", gate := "cell_recipient3", input := "p_A", stats := {"avg"} ]);
+plot([ name := "plot_avg", pop_fields := { "stat_1", "stat_2", "stat_3" } ]);
+
+pop_function([ name := "pfun_ratio2", type := "product", input := { "stat_2", "stat_1" }, params := { 1.0, -1.0 } ]);
+pop_function([ name := "pfun_ratio3", type := "product", input := { "stat_3", "stat_1" }, params := { 1.0, -1.0 } ]);
+plot([ name := "plot_ratio", pop_fields := { "pfun_ratio2", "pfun_ratio3" } ]);
+
+pop_stat([ name := "stat_acc1", gate := "cell_recipient1", input := "ot_A_recipientEv", stats := {"acc"} ]);
+pop_stat([ name := "stat_acc2", gate := "cell_recipient2", input := "ot_A_recipientEv", stats := {"acc"} ]);
+pop_stat([ name := "stat_acc3", gate := "cell_recipient3", input := "ot_A_recipientEv", stats := {"acc"} ]);
+plot([ name := "plot_events", pop_fields := { "stat_acc1", "stat_acc2", "stat_acc3" } ]);
+
+pop_function([ name := "pfun_eventRatio2", type := "product", input := { "stat_acc2", "stat_acc1" }, params := { 1.0, -1.0 } ]);
+pop_function([ name := "pfun_eventRatio3", type := "product", input := { "stat_acc3", "stat_acc1" }, params := { 1.0, -1.0 } ]);
+plot([ name := "plot_ratio_events", pop_fields := { "pfun_eventRatio2", "pfun_eventRatio3" } ]);

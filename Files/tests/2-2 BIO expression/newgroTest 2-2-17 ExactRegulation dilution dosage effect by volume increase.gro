@@ -1,0 +1,59 @@
+/* To test the dilution of dosage due to just volume increase without division
+Custom dosage effect of exact_regulation via the dosafe_fun and auto_division fields. 
+*/
+
+include gro3
+
+//params
+t_act := 1.0;
+t_act_var := 0.0;
+t_deg := 1.0;
+t_deg_var := 0.0;
+
+thresholdVal := 2.0;
+actiOnB := 100.0;
+
+global_params([ seed := 66456463, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_nodiv", division_gate := "_ga_false", growth_rate := {  0.005, 0.0 }, division_vol := 10.0, ini_vol := 2.0 ]);
+
+cell_type([ name := "cell_A"
+	, strain := "str_nodiv"
+	, qplasmids := {"qp_A"}
+	, qplasmid_amounts := { 10.0 }
+	//, qplasmids_as_conc := false
+]);
+
+
+//---gene expression
+molecule([ name := "mol_A", times := { -t_deg, t_act }, times_var := { t_deg_var, t_act_var }, thresholds := { thresholdVal } ]);
+
+function([ name := "fun_dosageA", input := { "reg_A" }, type := "sum", params := { 0.1 }, auto_vol := "division" ]);
+regulation([ name := "reg_A", dosage_fun := "fun_dosageA", acti_on := actiOnB, acti_marker := "regA_acti", auto_division := true ]);
+operon([ name := "op_A", regulation := "reg_A", output := {"mol_A"} ]);
+
+qplasmid([ name := "qp_A", operons := { "op_A" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := 0.0, y := 0.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green, intensity := 0.5 ]);
+
+function([ name := "fun_plasConc", input := { "qp_A" }, auto_vol := "division" ]);
+function([ name := "fun_logPlas", input := {"fun_plasConc"}, type := "log", params := { 2.0 } ]);
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red, target := "fun_logPlas", scale := 0.5 ]);
+
+//---
+plot([ name := "plot_all", fields := {"qp_A", "fun_dosageA", "regA_acti"}, stats := "avg" ]);
+plot([ name := "plot_mol", fields := {"mol_A"}, stats := "avg" ]);
+plot([ name := "plot_plas", fields := {"fun_plasConc"}, stats := { "avg", "min", "max" } ]);
+
+bgate([ name := "ga_notA", input := {"-mol_A"} ]);
+plot([ name := "plot_plasNot", gate := "ga_notA", fields := {"fun_plasConc"}, stats := { "avg", "min", "max" } ]);

@@ -1,0 +1,70 @@
+/*To test the alternative ways to describe growth rate. As the three of them are equivalent, the three cell types must have the same growth rate
+ - A: default automatic addition of "_biomass" fluxes when no custom function
+ - B: custom function that uses other functions as input directly
+ - C: custom function that uses fluxes as inputs
+ 
+To test:
+ - Apply randomness, at strain (baseRnd) or function (funRnd) level
+ - Modify the custom functions so that the strains have different growth rates (paramsB, paramsC)
+*/
+
+include gro3
+
+baseRnd := { 0.0, 0.0 };
+funRnd := { 0.0, 0.0 };
+
+paramsB := { 1.0, 1.0, 1.0, 0.0 };
+paramsC := { 1.0, 1.0, 1.0, 0.0 };
+
+
+global_params([ seed := 15467, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := baseRnd, ini_vol := 2.5 ]);
+
+function([ name := "fun_biomassB", type := "sum", input := { "fun_biomass1", "fun_biomass2", "fun_biomass3" }, params := paramsB, rnd_params := funRnd ]);
+strain([ name := "str_B", growth_rate := baseRnd, ini_vol := 2.5, growth_fun := "fun_biomassB" ]);
+
+function([ name := "fun_biomassC", type := "sum", input := { "flux_biomass1", "flux_biomass2", "flux_biomass3" }, params := paramsC, rnd_params := funRnd ]);
+strain([ name := "str_C", growth_rate := baseRnd, ini_vol := 2.5, growth_fun := "fun_biomassC" ]);
+
+cell_type([ name := "cell_A", strain := "str_A" ]);
+cell_type([ name := "cell_B", strain := "str_B" ]);
+cell_type([ name := "cell_C", strain := "str_C" ]);
+
+
+//---
+function([ name := "fun_biomass1", type := "const", params := {0.01} ]);
+flux([ name := "flux_biomass1", metabolite := "_biomass", amount_fun := "fun_biomass1" ]);
+
+function([ name := "fun_biomass2", type := "const", params := {0.005} ]);
+flux([ name := "flux_biomass2", metabolite := "_biomass", amount_fun := "fun_biomass2" ]);
+
+function([ name := "fun_biomass3", type := "const", params := {0.0025} ]);
+flux([ name := "flux_biomass3", metabolite := "_biomass", amount_fun :=  "fun_biomass3" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := -300.0, y := -100.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 1.0, coords := [ x := 300.0, y := -100.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_C", cell_types := {"cell_C"}, amount := 1.0, coords := [ x := 0.0, y := 100.0, r := 0.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "cell_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "cell_B", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "cell_C", rgb := _blue ]);
+
+//---
+plot([ name := "plot_funs", gate := "cell_A", fields := { "fun_biomass1", "fun_biomass2", "fun_biomass3" }, stats := "avg" ]);
+plot([ name := "plot_fluxes", gate := "cell_A", fields := { "flux_biomass1", "flux_biomass2", "flux_biomass3" }, stats := "avg" ]);
+plot([ name := "plot_grFuns", gate := "cell_B", fields := { "fun_biomassB", "fun_biomassC" }, stats := "avg" ]);
+
+pop_stat([ name := "stat_A", gate := "cell_A", input := "_gr", stats := "avg" ]);
+pop_stat([ name := "stat_B", gate := "cell_B", input := "_gr", stats := "avg" ]);
+pop_stat([ name := "stat_C", gate := "cell_C", input := "_gr", stats := "avg" ]);
+
+plot([ name := "plot_grs", pop_fields := { "stat_A", "stat_B", "stat_C" } ]);

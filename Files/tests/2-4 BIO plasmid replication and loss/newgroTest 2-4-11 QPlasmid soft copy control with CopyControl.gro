@@ -1,0 +1,62 @@
+/*To test the use of the built-in soft copy number control system, using copy_control. The reached copy number depends on the replication parameters but, as the rate is never a perfect zero, this depends on the growth rate too. 
+
+To test:
+ - Change the replication params (vmax and w of oriv and w of copy_control) of both plasmids and compare the result
+ - Change the growth rate to assess its effect
+ - Set the ccGate to false to remove the control
+*/
+
+include gro3
+
+//---params
+iniAmount := 10.0;
+
+orivGate := "_ga_true";
+//orivGate := "_ga_false";
+
+ccGate := "_ga_true";
+//ccGate := "_ga_false";
+
+
+global_params([ seed := 133087, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A",  growth_rate := {  0.01, 0.0 } ]);	
+cell_type([ name := "cell_AB"
+	, strain := "str_A"
+	, qplasmids := { "qp_A", "qp_B" } 
+	, qplasmid_amounts := { iniAmount, iniAmount }
+	, qplasmids_as_conc := false
+]);
+
+
+//---replication
+copy_control([ name := "cc_A", gate := ccGate, w := 1.0 ]);
+oriv([ name := "ov_A", gate := orivGate, copy_controls := {"cc_A"}, vmax := 10000.0, w := 0.1 ]);
+
+copy_control([ name := "cc_B", gate := ccGate, w := 0.01 ]);
+oriv([ name := "ov_B", gate := orivGate, copy_controls := {"cc_B"}, vmax := 250.0, w := 0.0001 ]);
+
+qplasmid([ name := "qp_A", oriVs := {"ov_A"}, copy_controls := {"cc_A"} ]);
+qplasmid([ name := "qp_B", oriVs := {"ov_B"}, copy_controls := {"cc_B"} ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_AB", cell_types := { "cell_AB" }, amount := 1.0, coords := [ x := -0.0, y := 0.0, r := 1.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpAlog", input := {"qp_A"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red, target := "fun_qpAlog", scale := 0.1 ]);
+
+function([ name := "fun_qpBlog", input := {"qp_B"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_blue", gate := "qp_B", rgb := _blue, target := "fun_qpBlog", scale := 0.1 ]);
+
+//---
+cells_plot([ name := "cplt_A", fields := { "qp_A" }, stats := { "avg", "min", "max" } ]);
+cells_plot([ name := "cplt_B", fields := { "qp_B" }, stats := { "avg", "min", "max" } ]);
+
+cells_plot([ name := "cplt_all", fields := { "qp_A", "qp_B" } ]);

@@ -1,0 +1,82 @@
+/*To test reversible mutations with qplasmids, in the absence of cell growth, division or plasmid replication. plasmids and amounts fields on mutation; gate, rate, rate_fun, mutations and mutations_probs fields of mutation_process
+To test:
+ - Change the mutation coefficients. The value of the qgate used as condition should match them for the expected behaviour. If the resulting balance is not 0, there is no equilibrium and the plasmids tend to either dissapear (<) or increase forever (>), both of them
+ - Change the maxRate params and use the custom functions instead. Notice that functions based on the current number of copies soften (less variation) the curves in comparison with just constant rates
+ - Change ini amounts
+ - Check that the contents vary properly
+*/
+
+include gro3
+
+iniCopies := 100.0;
+maxRateA := 10.0;
+maxRateB := 10.0;
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A"
+	, strain := "_str_nogrowth"
+	, qplasmids := {"qp_A", "qp_B"} 
+	, qplasmid_amounts := { 0, iniCopies }
+	, qplasmids_as_concs := false
+]);
+
+
+//---plasmids
+exact_regulation([ name := "ereg_A" ]);
+operon([ name := "op_A", regulation := "ereg_A" ]);
+qplasmid([ name := "qp_A", operons := { "op_A", "op_A" } ]);
+qplasmid([ name := "qp_B" ]);
+
+
+//---mutations
+mutation([ name := "mut_AtoB", plasmids := { "qp_A", "qp_B" } , amounts := { -1, 1 } ]);
+mutation([ name := "mut_BtoA", plasmids := { "qp_A", "qp_B" } , amounts := { 1, -1 } ]);
+
+//---
+function([ name := "fun_linearA", input := { "qp_A" }, type := "sum", params := { 0.01 }, auto_vol := "division" ]);
+function([ name := "fun_expA", input := { "qp_A" }, type := "sat_exp", params := { 10.0, 0.001 }, auto_vol := "division" ]);
+qgate([ name := "qga_qpA", input := "qp_A", operator := ">=", value := 1.0 ]);
+
+mutation_process([ name := "mutp_AtoB"
+	, gate := "qga_qpA"
+	, rate_fun := "fun_linearA"
+	//, rate_fun := "fun_expA"
+	, rate := maxRateA
+	, mutations := {"mut_AtoB"}
+]);
+
+//---
+function([ name := "fun_linearB", input := { "qp_B" }, type := "sum", params := { 0.01 }, auto_vol := "division" ]);
+function([ name := "fun_expB", input := { "qp_B" }, type := "sat_exp", params := { 10.0, 0.001 }, auto_vol := "division" ]);
+qgate([ name := "qga_qpB", input := "qp_B", operator := ">=", value := 1.0 ]);
+
+mutation_process([ name := "mutp_BtoA"
+	, gate := "qga_qpB"
+	, rate_fun := "fun_linearB"
+	//, rate_fun := "fun_expB"
+	, rate := maxRateB
+	, mutations := {"mut_BtoA"}
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpAlog", input := {"qp_A"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red, target := "fun_qpAlog", scale := 0.5 ]);
+
+function([ name := "fun_qpBlog", input := {"qp_B"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_green", gate := "qp_B", rgb := _green, target := "fun_qpBlog", scale := 0.5 ]);
+
+//---
+cells_plot([ name := "cplt_qpA", fields := { "qp_A" }, stats := { "avg", "min", "max" } ]);
+cells_plot([ name := "cplt_qpB", fields := { "qp_B" }, stats := { "avg", "min", "max" } ]);
+cells_plot([ name := "cplt_both", fields := { "qp_A", "qp_B" }, stats := { "avg" } ]);
+cells_plot([ name := "cplt_content", fields := { "qp_A", "op_A", "ereg_A" } , stats := { "avg" } ]);

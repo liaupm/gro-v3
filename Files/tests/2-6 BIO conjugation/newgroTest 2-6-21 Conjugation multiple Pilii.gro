@@ -1,0 +1,65 @@
+/* To test theh use of multiple pilus elements to emulate either two separate transmission systems coexisting in the same cell or two pili of the same type. As they are independent, it is possible to have two conjugation events during the same time step, one starter from each element. 
+After conjugation they undergo a cooldown, so that the total conjugation rate decreases when one of the pili is in the cooldown state and is zero when both are. 
+
+To test: try different conjugation rates and cooldown durations for each pilus element 
+*/
+
+include gro3
+
+cooldown := 100.0;
+rateA := 0.01;
+rateB := 0.01;
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor", strain := "_str_nogrowth", plasmids := {"bp_A", "bp_cooldown"} ]);
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth" ]);
+
+//---plasmids
+bplasmid([ name := "bp_A", oriTs := {"ot_A", "ot_B"} ]);
+bplasmid([ name := "bp_cooldown", operons := {"op_cooldownA", "op_cooldownB"} ]);
+
+//---gene expression
+molecule([ name := "mol_cooldownA", times := {-cooldown, 0.0} ]);
+operon([ name := "op_cooldownA", gate := "ev_donorA", output := { "mol_cooldownA" } ]);
+
+molecule([ name := "mol_cooldownB", times := {-cooldown, 0.0} ]);
+operon([ name := "op_cooldownB", gate := "ev_donorB", output := { "mol_cooldownB" } ]);
+
+
+//---conjugation
+bgate([ name := "bga_notA", input := {"-bp_A"} ]);
+bgate([ name := "bga_donor_activeA", input := { "cell_donor", "-mol_cooldownA" } ]);
+
+pilus([ name := "pil_A", donor_gate := "bga_donor_activeA", recipient_gate := "bga_notA", max_rate := rateA ]);
+oriT([ name := "ot_A", pilus := "pil_A", donor_event := "ev_donorA" ]);
+
+bgate([ name := "bga_donor_activeB", input := { "cell_donor", "-mol_cooldownB" } ]);
+pilus([ name := "pil_B", donor_gate := "bga_donor_activeB", recipient_gate := "bga_notA", max_rate := rateB ]);
+oriT([ name := "ot_B", pilus := "pil_B", donor_event := "ev_donorB" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor", cell_types := {"cell_donor"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+bgate([ name := "bga_received", input := {"-cell_donor", "bp_A"} ]);
+cell_colour([ name := "ccol_green", gate := "bga_received", rgb := _green ]);
+cell_colour([ name := "ccol_dark_red", gate := "cell_donor", rgb := _red, intensity := 0.2 ]);
+cell_colour([ name := "ccol_blue", gate := "mol_cooldownA", rgb := _blue ]);
+cell_colour([ name := "ccol_red", gate := "mol_cooldownB", rgb := _red ]);
+
+plot([ name := "plot_events", fields := {"ev_donorA", "ev_donorB"}, stats := {"sum"} ]);
+
+pop_stat([ name := "stat_evAccA", input := "ev_donorA", stats := {"acc"} ]);;
+pop_stat([ name := "stat_evAccB", input := "ev_donorB", stats := {"acc"} ]);;
+plot([ name := "plot_event_count", pop_fields := {"stat_evAccA", "stat_evAccB"} ]);
+
+plot([ name := "plot_cooldown", gate := "cell_donor", fields := {"mol_cooldownA", "mol_cooldownB"}, stats := {"sum"} ]);
+plot([ name := "plot_received", gate := "cell_recipient", fields := {"bga_received"}, stats := {"sum"} ]);

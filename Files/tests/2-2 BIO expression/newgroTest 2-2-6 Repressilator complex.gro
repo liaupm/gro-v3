@@ -1,0 +1,83 @@
+/* To test conditional gene expression and feedbackloops. The cells should oscillate between 3 colours, with the resulting intermediate colours
+Using manual regulations instead of automatic ones from gates
+To test: 
+ - Use different synthesis and degradation times and variabilities
+ - Use different inertia and inheritance parameters
+ - Try different initial molecules, including the three of them with deterministic times, to check that the expression events occur at the same time
+ - When stochastic, the cells must get more desynchronized with time
+*/
+
+include gro3
+
+//params
+t_act := 10.0;
+t_act_var := 1.0;
+t_deg := 50.0;
+t_deg_var := 5.0;
+
+
+global_params([ seed := 133087 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_ABC"
+	, strain := "_str_slow"
+	, plasmids := {"p_ABC"}
+	//, molecules := {"mol_A"}
+	, molecules := {"mol_A", "mol_B"}
+	//, molecules := {"mol_A", "mol_B", "mol_C"}
+]);
+
+
+//---gene expression
+randomness([ name := "rnd_A", inertia := 1.0 ]);
+randomness([ name := "rnd_B", inertia := 0.9 ]);
+randomness([ name := "rnd_C", inertia := 0.0 ]);
+randomness([ name := "rnd_reg", dist_type := "normal", inheritance := 1.0, inertia := 1.0 ]);
+
+//---
+molecule([ name := "mol_A", randomness := "rnd_A", times := {-t_deg, t_act }, times_var := { t_deg_var, t_act_var } ]);
+molecule([ name := "mol_B", randomness := "rnd_B", times := {-t_deg, t_act } , times_var := { t_deg_var, t_act_var } ]);
+molecule([ name := "mol_C", randomness := "rnd_C", times := {-t_deg, t_act } , times_var := { t_deg_var, t_act_var } ]);
+
+//--
+bgate([ name := "ga_notMolA", type := "NOT", input := {"mol_A"} ]);
+bgate([ name := "ga_notMolB", input := {"-mol_B"} ]);
+bgate([ name := "ga_notMolC", input := {"-mol_C"} ]);
+
+regulation([ name := "reg_notA", gate := "ga_notMolA", randomness := "rnd_reg" ]);
+regulation([ name := "reg_notB", gate := "ga_notMolB", randomness := "rnd_reg" ]);
+regulation([ name := "reg_notC", gate := "ga_notMolC", randomness := "rnd_reg" ]);
+
+//---
+operon([ name := "op_A"
+	, regulation := "reg_notC"
+	//, gate := "ga_notMolC"
+	, output := {"mol_A"}
+]);
+
+operon([ name := "op_B"
+	, regulation := "reg_notA"
+	//, gate := "ga_notMolA"
+	, output := {"mol_B"}
+]);
+
+operon([ name := "op_C"
+	, regulation := "reg_notB"
+	//, gate := "ga_notMolB"
+	, output := {"mol_C"}
+]);
+
+plasmid([ name := "p_ABC", operons := { "op_A", "op_B", "op_C" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "mol_B", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "mol_C", rgb := _blue ]);

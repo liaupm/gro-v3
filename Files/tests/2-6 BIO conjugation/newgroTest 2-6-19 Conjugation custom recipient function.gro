@@ -1,0 +1,69 @@
+/*To test the use of custom functions for the suitability of neighbours at recipients and their probabilities of being selected, using the recipient_fun field of pilus.
+The function is linear with the number of copies of "op_A" operon (plus a bias term). "cell_recipientHigh" has more copies than "cell_recipientLow" so it will be selected more times.
+
+To test: modify the number of copies of "op_A" in each recipient type and the parameters of the function (speedRatio, speedBase). Check that the ratio of conjugation events involving each recipient type matches. As the custom probability also influcences the total rate, use neighbours_w to tune the effect. */
+
+include gro3
+
+speedRatio := 99.0;
+speedBase := 1.0;
+
+global_params([ seed := 90451, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor", strain := "_str_nogrowth", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_recipientHigh", strain := "_str_nogrowth", plasmids := {"p_high"} ]);
+cell_type([ name := "cell_recipientLow", strain := "_str_nogrowth", plasmids := {"p_low"} ]);
+
+//---plasmids
+plasmid([ name := "p_A", oriTs := {"ot_A"} ]);
+plasmid([ name := "p_high", operons := { "op_A" } ]);
+plasmid([ name := "p_low", operons := {} ]);
+
+
+//---conjugation
+operon([ name := "op_A" ]);
+function([ name := "fun_recipient", input := {"op_A"}, params := { speedRatio, speedBase } ]);
+bgate([ name := "bga_not_pA", input := {"-p_A"} ]);
+
+pilus([ name := "pil_A"
+	, donor_gate := "cell_donor"
+	, recipient_gate := "bga_not_pA"
+	, recipient_fun := "fun_recipient"
+	, max_rate := 100.0
+	, neighbours_w := 0.0001
+	, vol_scaling := false
+]);
+
+oriT([ name := "ot_A", pilus := "pil_A" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor", cell_types := {"cell_donor"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 250.0 ] ]);
+cell_placer([ name := "cp_recipientHigh", cell_types := {"cell_recipientHigh"}, amount := 400.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+cell_placer([ name := "cp_recipientLow", cell_types := {"cell_recipientLow"}, amount := 400.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+bgate([ name := "bga_highA", input := { "cell_recipientHigh", "p_A" } ]);
+bgate([ name := "bga_lowA", input := { "cell_recipientLow", "p_A" } ]);
+
+cell_colour([ name := "ccol_red", gate := "cell_donor", rgb := _red ]);
+cell_colour([ name := "ccol_green", gate := "bga_highA", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "bga_lowA", rgb := _blue ]);
+cell_colour([ name := "ccol_dark_green", gate := "cell_recipientHigh", rgb := _green, intensity := 0.3 ]);
+cell_colour([ name := "ccol_dark_blue", gate := "cell_recipientLow", rgb := _blue, intensity := 0.3 ]);
+
+//---
+bgate([ name := "bga_recipient", type := "OR", input := { "cell_recipientHigh", "cell_recipientLow" } ]);
+bgate([ name := "bga_recipientA", input := { "bga_recipient", "p_A" } ]);
+
+pop_stat([ name := "stat_high", gate := "bga_recipientA", input := "cell_recipientHigh", stats := {"avg"} ]);
+pop_stat([ name := "stat_low", gate := "bga_recipientA", input := "cell_recipientLow", stats := {"avg"} ]);
+plot([ name := "plot_avg", pop_fields := { "stat_high", "stat_low" } ]);
+
+pop_function([ name := "pfun_ratio", type := "product", input := { "stat_high", "stat_low" }, params := { 1.0, -1.0 } ]);
+plot([ name := "plot_ratio", pop_fields := { "pfun_ratio" } ]);

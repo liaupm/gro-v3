@@ -1,0 +1,51 @@
+/*To test the combination of conjugation and gene expression, using molecules as donor_gate and as recipient_gate. 
+The donor requires "mol_conj" to conjugate while "mol_eex" produces surface exclusion in the recipient. 
+There are sucessful conjugations when there are "mol_conj" but not "mol_eex". If the activation time of "mol_eex" was shorter than that of "mol_conj", thre would not be conjugation events. */
+
+include gro3
+
+copyNum := 20.0;
+iniCopies := 10;
+
+global_params([ seed := 123443 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor", strain := "_str_nogrowth", plasmids := {"p_conj"} ]);
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth", plasmids := {"p_eex"} ]);
+
+//---plasmids
+plasmid([ name := "p_eex", operons := { "op_eex" } ]);
+plasmid([ name := "p_conj", operons := { "op_conj" }, oriTs := {"ot_A"} ]);
+
+
+//---gene expression
+molecule([ name := "mol_conj", times := { -20.0, 50.0 }, times_var := { 0.0, 0.0 } ]);
+molecule([ name := "mol_eex", times := { -20.0, 200.0 }, times_var := { 0.0, 0.0 } ]);
+
+operon([ name := "op_conj", output := { "mol_conj" } ]);
+bgate([ name := "ga_notConj", input := {"-mol_conj"} ]);
+operon([ name := "op_eex", gate := "ga_notConj", output := { "mol_eex" } ]);
+
+
+//---conjugation
+bgate([ name := "ga_notEex", input := {"-mol_eex"} ]);
+pilus([ name := "pil_A", donor_gate := "mol_conj", recipient_gate := "ga_notEex", max_rate := { 0.01, 0.0 } ]);
+oriT([ name := "ot_A", pilus := "pil_A" ]);
+
+
+//---growth
+flux([ name := "flux_growth", metabolite := "_biomass", gate := "mol_conj", amount := 0.001 ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor", cell_types := {"cell_donor"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "p_conj", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "mol_conj", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "mol_eex", rgb := _blue ]);

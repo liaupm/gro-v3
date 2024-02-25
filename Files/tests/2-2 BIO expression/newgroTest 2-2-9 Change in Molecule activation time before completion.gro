@@ -1,0 +1,54 @@
+/* To test the scaling in synthesis time when it changes before completion.
+Additionally, it is useful to test more than 2 molecule times, automatic thresholds and automatic addition of operon activations
+After t_act_tf, op_moreA switches on and the total activation changes from 1 to 2 and the synthesis time from t_act_slow to t_act_fast
+
+To test:
+	- Check that the resulting time is the linear combination of the two periods
+	- Try different t_act_tf
+	- Try different t_act_fast and t_act_slow, even making t_act_fast the longest
+	- Check that when t_act_slow and t_act_tf match and t_act_fast is longer, there is no change
+	- Notice that repeating the same molecule in the operon's output has no effect (the activation is not duplicated)
+*/
+
+include gro3
+
+//params
+t_act_fast := 100.0;
+t_act_slow := 50.0;
+t_act_tf := 25.0;
+
+t_act_var := 0.0;
+t_deg := 10.0;
+t_deg_var := 0.0;
+
+global_params([ seed := 66456463 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", strain := "_str_nogrowth", plasmids := {"p_A"} ]);
+
+//---gene expression
+molecule([ name := "mol_A", times := { -t_deg, t_act_slow, t_act_fast }, times_var := { t_deg_var, t_act_var, t_act_var } ]);
+molecule([ name := "mol_tf", times := { -t_deg, t_act_tf }, times_var := { t_deg_var, t_act_var } ]);
+
+operon([ name := "op_base", output := {"mol_A", "mol_A", "mol_tf"} ]);
+//operon([ name := "op_base", output := {"mol_A", "mol_tf"} ]);
+operon([ name := "op_moreA", gate := "mol_tf", output := {"mol_A"} ]);
+
+bplasmid([ name := "p_A", operons := { "op_base", "op_moreA" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0 ]);
+
+//---checkpoints
+pop_stat([ name := "stat_A", input := "mol_A" ]);
+pop_qgate([ name := "qpga_A", input := "stat_A" ]);
+timer([ name := "t_A", mode := "once", gate := "qpga_A" ]);
+checkpoint([ name := "stop_A", timer := "t_A", message := "molA produced" ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);

@@ -1,0 +1,58 @@
+/*To test the conjugation events (donor_event and recipient_event fields of orit). 
+At the donor side, it is used to produce a cooldown period while the donor is inactive, represented by "mol_cooldown". The duration of it is given by the degradation time of "mol_cooldown".
+At the recipient side, the conjugation events are reported with "mol_rep" during a period of time given by its degradation time. 
+Both events are counted by acc pop_stat
+*/
+
+include gro3
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor", strain := "_str_nogrowth", plasmids := {"bp_A", "bp_cooldown"} ]);
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth", plasmids := {"bp_rep"} ]);
+
+//---plasmids
+bplasmid([ name := "bp_A", oriTs := {"ot_A"} ]);
+bplasmid([ name := "bp_rep", operons := {"op_rep"} ]);
+bplasmid([ name := "bp_cooldown", operons := {"op_cooldown"} ]);
+
+//---gene expression
+molecule([ name := "mol_rep", times := {-200.0, 0.01} ]);
+molecule([ name := "mol_cooldown", times := {-100.0, 0.0} ]);
+
+operon([ name := "op_cooldown", gate := "ev_donorA", output := { "mol_cooldown" } ]);
+operon([ name := "op_rep", gate := "ev_recipientA", output := { "mol_rep" } ]);
+
+
+//---conjugation
+bgate([ name := "bga_donor_active", input := { "cell_donor", "-mol_cooldown" } ]);
+bgate([ name := "bga_notA", input := {"-bp_A"} ]);
+
+pilus([ name := "pil_A", donor_gate := "bga_donor_active", recipient_gate := "bga_notA", max_rate := 0.01 ]);
+oriT([ name := "ot_A", pilus := "pil_A", donor_event := "ev_donorA", recipient_event := "ev_recipientA" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor", cell_types := {"cell_donor"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_rep", rgb := _green ]);
+bgate([ name := "bga_received", input := {"-cell_donor", "bp_A"} ]);
+cell_colour([ name := "ccol_dark_green", gate := "bga_received", rgb := _green, intensity := 0.4 ]);
+cell_colour([ name := "ccol_blue", gate := "mol_cooldown", rgb := _blue ]);
+cell_colour([ name := "ccol_red", gate := "cell_donor", rgb := _red ]);
+
+plot([ name := "plot_events", fields := {"ev_donorA", "ev_recipientA"}, stats := {"sum"} ]);
+
+pop_stat([ name := "stat_evDonorAcc", input := "ev_donorA", stats := {"acc"} ]);
+pop_stat([ name := "stat_evRecipientAcc", input := "ev_recipientA", stats := {"acc"} ]);
+plot([ name := "plot_event_count", pop_fields := {"stat_evDonorAcc", "stat_evRecipientAcc" } ]);
+
+plot([ name := "plot_cooldown", gate := "cell_donor", fields := {"mol_cooldown"}, stats := {"sum"} ]);
+plot([ name := "plot_rep", gate := "cell_recipient", fields := {"mol_rep"}, stats := {"sum"} ]);

@@ -1,0 +1,65 @@
+/*Spatio-temporal pattern produced by a incoherent loop at multicellular level, using a diffusible signal. The cells that sense the signal first produce more signal but soon enter a cooldown stage when they do not respond. This produces waves. 
+A single external pulse is enough. Once started, it oscillates autonomously without any other external intervention. 
+To test: modify the signal diffusion and degradation, the emitted amount and the cooldown time.
+*/
+
+include gro3
+
+t_activation_wait := 10.0;
+t_degradation_wait := 0.1;
+
+
+global_params([ seed := 133087 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := 0.01 ]);
+cell_type([ name := "cell_A", strain := "str_A" ]);
+
+
+//---gene expression
+molecule([ name := "mol_cooldown", times := { -10.0, 1.0 }, times_var := { 0.0, 0.0 } ]);
+molecule([ name := "mol_reporter", times := { -5.0, 0.1 }, times_var := { 0.0, 0.0 } ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.4, kdeg := 0.2, colour := _magenta, colour_sat := 10.0 ]);
+
+bgate([ name := "bga_ready", input := {"-mol_cooldown"} ]);
+function([ name := "fun_A", input := {"_conc_s_A"} ]);
+qgate([ name := "qga_A", input := "fun_A", value := 0.1 ]);
+
+flux([ name := "flux_Aout"
+	, metabolite := "s_A"
+	, gate := "bga_ready"
+	, sgate := "qga_A"
+	, output := {"mol_cooldown", "mol_reporter"}
+	, amount := 50.0
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 200.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+//---
+timer([ name := "t_A", start := 100.0, stop := 100.0, period := -1.0 ]);
+
+signal_placer([ name := "sp_A"
+	, signals := {"s_A"}
+	, amount := 3000.0
+	, sources := 1.0
+	, coords := [ x := 0.0, y := 0.0, r := 0.0 ]
+	, timer := "t_A"
+]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green"
+	, gate := "mol_reporter"
+	, rgb := _green
+	, mode := "delta" 
+	//, intensity := { 1.0, 0.2 }
+	, delta := { 0.2, 0.01 }
+]);

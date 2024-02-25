@@ -1,0 +1,86 @@
+/*An external medium signal affects different cell_types in different ways:
+ - A (green): needs the signal to divide
+ - B (red): needs the sgnal to grow
+ - C (blue): is killed by the signal
+*/
+
+include gro3
+
+signalThreshold := 10.0;
+deathThreshold := -0.1;
+growthR := { 0.01, 0.001 };
+
+global_params([ seed := 8685, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+qgate([ name := "qga_sA", input := "_conc_s_A", value := signalThreshold ]);
+
+strain([ name := "str_A", division_gate := "qga_sA", growth_rate := growthR, death_threshold := deathThreshold ]);
+strain([ name := "str_B", growth_rate := { 0.0, 0.0 }, death_threshold := deathThreshold ]);
+strain([ name := "str_C", death_gate := "qga_sA", growth_rate := growthR, death_threshold := deathThreshold + 100.0 ]);
+
+cell_type([ name := "cell_A", strain := "str_A" ]);
+cell_type([ name := "cell_B", strain := "str_B" ]);
+cell_type([ name := "cell_C", strain := "str_C" ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.1, colour := _magenta, colour_sat := 10.0 ]);
+
+flux([ name := "flux_growthB"
+	, signal := "_biomass"
+	, gate := "cell_B"
+	, sgate := "qga_sA"
+	, amount_params := { 0.03, 0.001 }
+	, absolute := true
+]);
+
+flux([ name := "flux_deathC"
+	, signal := "_biomass"
+	, gate := "cell_C"
+	//, sgate := "qga_sA"
+	, amount := -1.0
+	, absolute := true
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 10.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 10.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_C", cell_types := {"cell_C"}, amount := 10.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+
+//---
+timer([ name := "t_A", start := 50.0, stop := 1000.0, period := 10.0 ]);
+
+signal_placer([ name := "sp_A"
+	, timer := "t_A"
+	, signals := {"s_A"}
+	, amount := 3000.0
+	, sources := 10.0
+	, coords := [ x := 0.0, y := 0.0, r := 200.0 ]
+]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "cell_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "cell_B", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "cell_C", rgb := _blue ]);
+
+//---
+plot([ name := "plot_sums", fields := {"cell_A", "cell_B", "cell_C"}, stats := {"sum"} ]);
+plot([ name := "plot_avgs", fields := {"cell_A", "cell_B", "cell_C"}, stats := "avg" ]);
+
+pop_stat([ name := "stat_grA", gate := "cell_A", input := "_gr", stats := "avg" ]);
+pop_stat([ name := "stat_grB", gate := "cell_B", input := "_gr", stats := "avg" ]);
+pop_stat([ name := "stat_grC", gate := "cell_C", input := "_gr", stats := "avg" ]);
+plot([ name := "plot_gr", pop_fields := { "stat_grA", "stat_grB", "stat_grC" } ]);
+
+plot([ name := "plot_grA", pop_fields := {"stat_grA"}, fields := {"_gr"}, gate := "cell_B", stats := { "avg", "min", "max" } ]);
+
+pop_stat([ name := "stat_volA", gate := "cell_A", input := "_volume", stats := "avg" ]);
+pop_stat([ name := "stat_volB", gate := "cell_B", input := "_volume", stats := "avg" ]);
+pop_stat([ name := "stat_volC", gate := "cell_C", input := "_volume", stats := "avg" ]);
+//plot([ name := "plot_vol", pop_fields := { "stat_volA", "stat_volB", "stat_volC" } ]);

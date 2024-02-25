@@ -1,0 +1,81 @@
+/*To test the conjugation of qplasmids, their replication in the recipient cell and the effect of copy number in the selection of the plasmid when several ones share the same pilus. Also, the rate_w and copy_dependent fields of orit. 
+"qp_A" and "qp_B" share the "pil_A" pilus. The ratio between their copy numbers must match the ratio in transmissions i.e. the number of recipient cells that receive each of the plasmids.
+
+To test:
+ - Modify the copy numbers and check that the transmission ratio matches
+ - Set bCopyDependent to false to remove the effect of the copy number difference and check that the transmission ratio is the same
+ - Set an wRatio ther than 1.0 and check that its effect is combined with that of the copy number if bCopyDependent true
+ - Switch oriT2 to switch between competence between orits with the same pilus to competence between plasmids with the same orit. The effect of the copy number must be the same if bCopyDependent true. The differences rely on the wRatio.
+ - Check that making copy_dependent false for any of the orits makes it also false automatically for all the other orits that share the same pilus
+ - Check that the transmitted plasmids replciate properly in the recipient cell
+*/
+
+include gro3
+
+copyNumA := 30.0;
+copyNumB := 10.0;
+
+wRatio := 1.0;
+bCopyDependent := true;
+//oriT2 := "ot_A";
+oriT2 := "ot_B";
+
+global_params([ seed := 75645, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_custom", growth_rate := { 0.0, 0.0 } ]);	
+cell_type([ name := "cell_donor", strain := "str_custom", qplasmids := { "qp_A", "qp_B" }, qplasmid_amounts := { copyNumA, copyNumB } ]);
+cell_type([ name := "cell_recipient", strain := "str_custom" ]);
+
+//---plasmids
+qplasmid([ name := "qp_A", orivs := {"ov_A"}, oriTs := {"ot_A"} ]);
+qplasmid([ name := "qp_B", orivs := {"ov_B"}, oriTs := {oriT2} ]);
+
+
+//---replication
+function([ name := "fun_copyNumA", input := {"qp_A"}, auto_vol := "division" ]);
+qgate([ name := "qga_copyNumA", input := "fun_copyNumA", operator := "<", value := copyNumA ]);
+oriv([ name := "ov_A", gate := "qga_copyNumA", vmax := 0.5 ]);
+
+function([ name := "fun_copyNumB", input := {"qp_B"}, auto_vol := "division" ]);
+qgate([ name := "qga_copyNumB", input := "fun_copyNumB", operator := "<", value := copyNumB ]);
+oriv([ name := "ov_B", gate := "qga_copyNumB", vmax := 0.5 ]);
+
+
+//---conjugation
+bgate([ name := "bga_notEex", input := {"-ot_A", "-ot_B"} ]);
+pilus([ name := "pil_A", donor_gate := "cell_donor", recipient_gate := "bga_notEex", max_rate := 0.01 ]);
+
+oriT([ name := "ot_A", pilus := "pil_A", rate_w := wRatio, copy_dependent := bCopyDependent ]);
+oriT([ name := "ot_B", pilus := "pil_A", rate_w := 1.0, copy_dependent := bCopyDependent ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_recipient", cell_types := { "cell_recipient" }, amount := 1000.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+cell_placer([ name := "cp_donor", cell_types := {"cell_donor"}, amount := 50.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "qp_A", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "qp_B", rgb := _blue ]);
+cell_colour([ name := "ccol_red", gate := "cell_donor", rgb := _red ]);
+
+//---
+bgate([ name := "bga_gotA", input := { "qp_A", "cell_recipient" } ]);
+bgate([ name := "bga_gotB", input := { "qp_B", "cell_recipient" } ]);
+pop_stat([ name := "stat_qpA", gate := "bga_gotA", input := "qp_A", stats := {"avg"}, auto_vol := "division" ]);
+pop_stat([ name := "stat_qpB", gate := "bga_gotB", input := "qp_B", stats := {"avg"}, auto_vol := "division" ]);
+plot([ name := "cplt_q", pop_fields := {"stat_qpA", "stat_qpB"} ]);
+
+bgate([ name := "bga_qpA", input := {"qp_A"} ]);
+bgate([ name := "bga_qpB", input := {"qp_B"} ]);
+bgate([ name := "bga_gotAny", type := "OR", input := { "bga_gotA", "bga_gotB" } ]);
+pop_stat([ name := "stat_A", gate := "bga_gotAny", input := "bga_qpA", stats := {"avg"} ]);
+pop_stat([ name := "stat_B", gate := "bga_gotAny", input := "bga_qpB", stats := {"avg"} ]);
+plot([ name := "cplt_b", pop_fields := {"stat_A", "stat_B"} ]);
+
+pop_function([ name := "pfun_ratioAtoB", type := "product", input := {"stat_A", "stat_B"}, params := {1.0, -1.0} ]);
+plot([ name := "cplt_ratioAtoB", pop_fields := {"pfun_ratioAtoB"} ]);

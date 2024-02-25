@@ -1,0 +1,78 @@
+/*To test the partition of qplasmids on cell division. Fields: gate, fraction, p and vol_scaling of partition element. For simplicity, the qplasmids don't replicate (suicide). 
+To test the random and the exact behaviour, their conditional nature, custom values, different ways to describe distributions, the optional effect of volume and asymmetric division and the daughter selection.
+The strain is made for synchronization. The strain is unrealistically big to prevent the minimum possible volume to interfere when using division fractions very distant from 0.5.
+A bplasmid with loss_prob 1.0 is used to kill all the cells but one when required. 
+Additionally used to test: division_fraction, death_gate, bplasmid loss_prob, log function, cell_colour target and scale, cell_type qplasmid_amounts and qplasmids_as_conc
+
+To test:
+ - Change partitionGate to switch between perfect and binomial partition
+ - Change pParam when using random
+ - Change fract when using perfect. Try both exact and random (with noise) and the four ways of setting the distribution. Custom distributions require changing the selectedPartition
+ - Change volScaling
+ - Test the extreme cases when pParam or fract are either 1.0 or 0.0
+ - Don't assign a custom partition to test the default one (random p = 0.5)
+*/
+
+include gro3
+
+iniCopies := 128;
+
+//partitionGate := "_ga_false";
+partitionGate := "_ga_true";
+
+//deathGate := "bga_notInitial";
+deathGate := "_ga_false";
+
+divFract:= 0.5;
+volScaling := true;
+
+fractFun := "fun_const";
+pFun := "fun_const";
+
+
+global_params([ seed := 41756, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+bplasmid([ name := "bp_initial", loss_prob := 1.0 ]);
+bgate([ name := "bga_notInitial", input := {"-bp_initial"} ]);
+strain([ name := "str_synchro", death_gate := deathGate, death_threshold := 10.0, growth_rate := { 0.01, 0.0 }, ini_vol := 2.5, division_vol := 10.0, division_fraction := divFract ]);	
+
+cell_type([ name := "cell_A"
+	, strain := "str_synchro"
+	//, strain := "_str_slow"
+	, qplasmids := {"qp_A"} 
+	, qplasmid_amounts := { iniCopies }
+	, qplasmids_as_conc := false
+	, bplasmids := { "bp_initial" } 
+]);
+
+
+//---partition
+randomness([ name := "rnd_fraction", dist_type := "uniform", inertia := 1.0, inheritance := 0.0 ]);
+randomness([ name := "rnd_p", dist_type := "uniform", inertia := 1.0, inheritance := 0.0 ]);
+
+function([ name := "fun_const", type := "const", params := {0.5} ]);
+
+partition([ name := "part_Acustom", gate := partitionGate, fraction_fun := fractFun, pFun := pFun, vol_scaling := volScaling ]);
+
+qplasmid([ name := "qp_A", partition_system := "part_Acustom" ]);
+//qplasmid([ name := "qp_B", partition_system := selectedPartition ]);
+//qplasmid([ name := "qp_A" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 1.0 ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpA", input := {"qp_A"}, type := "log", params := {2.0} ]);
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red, target := "fun_qpA", scale := 0.1 ]);
+cell_colour([ name := "ccol_blue", gate := "qp_A", rgb := _blue, intensity := 0.2 ]); //to tell cases 1 and 0 apart
+
+//---
+cells_plot([ name := "cplt_qpA", fields := { "qp_A" }, stats := {"avg", "min", "max"} ]);
+cells_plot([ name := "cplt_qpA_total", fields := { "qp_A" }, stats := {"sum"} ]);
+cells_plot([ name := "cplt_vol", fields := { "_volume" }, stats := {"avg"} ]);

@@ -1,0 +1,122 @@
+/*To test mutations, plasmid replication and growth at the same time. Both mutation and replication may have eclipse. The plasmids are independent (no competition for replication). Based on concentrations.
+
+To test:
+ - Try different replication and mutation rates. Mutations displace the equilibrium copy number
+ - Try adding eclipse period only to replication, mutation or both 
+ - Change the initial copy number and the growth rate
+ - Change the partition params
+*/
+
+include gro3
+
+copyNum := 20.0;
+iniCopies := 10.0;
+
+repliRateA := 0.5;
+repliRateB := 0.1;
+mutRateA := 0.01;
+mutRateB := 0.0;
+
+eclipeTime := { 4.0, 0.1 };
+//bMutEclipse := false;
+bMutEclipse := true;
+
+//bRepliEclipse := false;
+bRepliEclipse := true;
+
+//volScale := "none";
+volScale := "division";
+
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_AB"
+	, strain := "_str_slow"
+	, qplasmids := {"qp_A", "qp_B"} 
+	, qplasmid_amounts := { iniCopies / 2.0, iniCopies / 2.0 }
+]);
+
+//---plasmids
+qplasmid([ name := "qp_A"
+	, oriVs := {"ov_A"}
+	, partition_system := "part_A"
+	, eclipse := eclipeTime
+	, eclipse_marker := "qpA_eclipse"
+]);
+
+qplasmid([ name := "qp_B"
+	, oriVs := {"ov_B"}
+	, partition_system := "part_B"
+	, eclipse := eclipeTime
+	, eclipse_marker := "qpB_eclipse"
+]);
+
+
+//---replication
+function([ name := "fun_copyNumRawA", input := { "qp_A", "qpA_eclipse" } ]);
+function([ name := "fun_copyNumA", input := { "fun_copyNumRawA" }, vol_scaling := volScale ]);
+qgate([ name := "qga_copyNumA", input := "fun_copyNumA", value := copyNum, operator := "<" ]);
+function([ name := "fun_linearRepliA", input := { "qp_A" }, type := "sum", params := { repliRateA }, auto_vol := volScale ]);
+oriv([ name := "ov_A", gate := "qga_copyNumA", rate_fun := "fun_linearRepliA", eclipse := bRepliEclipse ]);
+
+function([ name := "fun_copyNumRawB", input := { "qp_B", "qpB_eclipse" } ]);
+function([ name := "fun_copyNumB", input := { "fun_copyNumRawB" }, vol_scaling := volScale ]);
+qgate([ name := "qga_copyNumB", input := "fun_copyNumB", value := copyNum, operator := "<" ]);
+function([ name := "fun_linearRepliB", input := { "qp_B" }, type := "sum", params := { repliRateB }, auto_vol := volScale ]);
+oriv([ name := "ov_B", gate := "qga_copyNumB", rate_fun := "fun_linearRepliB", eclipse := bRepliEclipse ]);
+
+partition_system([ name := "part_A", gate := "_ga_true", fraction := 0.5, p := 0.5 ]);
+partition_system([ name := "part_B", gate := "_ga_true", fraction := 0.5, p := 0.5 ]);
+
+
+//---mutations
+mutation([ name := "mut_AtoB", plasmids := { "qp_A", "qp_B" }, amounts := { -1, 1 } ]);
+mutation([ name := "mut_BtoA", plasmids := { "qp_A", "qp_B" }, amounts := { 1, -1 } ]);
+
+//---
+function([ name := "fun_linearA", input := { "qp_A" }, type := "sum", params := { mutRateA }, auto_vol := volScale ]);
+qgate([ name := "qga_qpA", input := "qp_A", operator := ">=", value := 1.0 ]);
+mutation_process([ name := "mutp_AtoB"
+	, gate := "qga_qpA"
+	, rate_fun := "fun_linearA"
+	, mutations := {"mut_AtoB"}
+	, eclipse := bMutEclipse
+]);
+
+//---
+function([ name := "fun_linearB", input := { "qp_B" }, type := "sum", params := { mutRateB }, auto_vol := volScale ]);
+qgate([ name := "qga_qpB", input := "qp_B", operator := ">=", value := 1.0 ]);
+mutation_process([ name := "mutp_BtoA"
+	, gate := "qga_qpB"
+	, rate_fun := "fun_linearB"
+	, mutations := {"mut_BtoA"}
+	, eclipse := bMutEclipse
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_AB", cell_types := { "cell_AB" }, amount := 100.0, coords := [ r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpAlog", input := {"qp_A"}, type := "log", params := {10.0}, auto_vol := volScale ]);
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red, target := "fun_qpAlog", scale := 0.5 ]);
+
+function([ name := "fun_qpBlog", input := {"qp_B"}, type := "log", params := {10.0}, auto_vol := volScale ]);
+cell_colour([ name := "ccol_green", gate := "qp_B", rgb := _green, target := "fun_qpBlog", scale := 0.5 ]);
+
+//---
+//plot([ name := "cplt_amounts", fields := { "qp_A", "qp_B" }, stats := {"avg"} ]);
+plot([ name := "cplt_active", fields := { "qp_A", "qp_B" }, stats := {"avg"}, auto_vol := volScale ]);
+
+//plot([ name := "cplt_rangeA", fields := { "qp_A" } , stats := { "avg", "min", "max" }, auto_vol := volScale ]);
+//plot([ name := "cplt_rangeB", fields := { "qp_B" } , stats := { "avg", "min", "max" }, auto_vol := volScale ]);
+
+plot([ name := "cplt_A", fields := { "qp_A", "qpA_eclipse", "fun_copyNumRawA" }, stats := {"avg"}, auto_vol := volScale ]);
+plot([ name := "cplt_B", fields := { "qp_B", "qpB_eclipse", "fun_copyNumRawB" }, stats := {"avg"}, auto_vol := volScale ]);
+
+plot([ name := "cplt_copynums", fields := { "fun_copyNumRawA", "fun_copyNumRawB" }, stats := {"avg"}, auto_vol := volScale ]);

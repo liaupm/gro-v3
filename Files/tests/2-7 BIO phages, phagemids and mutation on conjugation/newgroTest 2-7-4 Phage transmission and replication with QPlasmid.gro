@@ -1,0 +1,72 @@
+/*
+*/
+
+include gro3
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", strain := "_str_slow" ]);
+cell_type([ name := "cell_B", strain := "_str_slow", qplasmids := {"qp_phage"} ]);
+
+//---plasmids
+qplasmid([ name := "qp_phage", operons := {"op_phage"}, orivs := {"ov_phage"}, copy_control := {"cc_phage"} ]);
+
+
+//---gene expression
+molecule([ name := "mol_virion", times := { -5.0, 1.0 } , times_var := { 0.0, 0.0 } ]);
+molecule([ name := "mol_viralProt", times := { -20.0, 20.0 } , times_var := { 0.0, 0.0 } ]);
+
+operon([ name := "op_phage", output := {"mol_viralProt"} ]);
+
+
+//---metabolism
+signal([ name := "s_virion", kdiff := 0.05, kdeg := 0.0, colour := _magenta, colour_sat := 1.0 ]);
+
+bgate([ name := "bga_not_viralProt" , input := {"-mol_viralProt"} ]);
+flux([ name := "flux_virion_in"
+	, gate := "bga_not_viralProt"
+	, metabolite := "s_virion"
+	, output := {"mol_virion"}
+	, amount := -0.02
+	, threshold := 0.2
+]);
+
+flux([ name := "flux_virion_out", gate := "mol_viralProt", metabolite := "s_virion", amount := 0.5 ]);
+
+
+//---mutations
+mutation([ name := "mut_phage", plasmids := { "qp_phage" }, amounts := { 1 } ]);
+
+bgate([ name := "bga_eex", input := {"mol_virion", "-qp_phage"} ]);
+function([ name := "fun_constRate", type := "const", params := { 0.1 } ]);
+mutation_process([ name := "mutp_phage", gate := "bga_eex", mutations := {"mut_phage"}, rate_fun := "fun_constRate" ]);
+
+
+//---replication
+copy_control([ name := "cc_phage", gate := "_ga_true", w := 0.1 ]);
+
+oriv([ name := "ov_phage"
+	//, gate := "qga_copyNum_A"
+	, vmax := 1.0
+	, w := 0.01
+	, copy_controls := {"cc_phage"}
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_virion", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "qp_phage", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "mol_viralProt", rgb := _blue ]);
+
+//---
+cells_plot([ name := "cplt_q", fields := { "qp_phage" }, stats := {"avg"} ]);
+cells_plot([ name := "cplt_b", fields := { "mol_virion", "mol_viralProt" }, stats := {"avg"} ]);

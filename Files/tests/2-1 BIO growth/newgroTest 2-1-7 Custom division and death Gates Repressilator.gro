@@ -1,0 +1,32 @@
+/*To test custom division and death gates on changing oscilalting conditions. The cells can only divide (die) when protein A is present.
+The protein, the cell volume and the growth rate must oscillate together. 
+If the growth rate is high enough to make the cells reach the division size more than once per cycle, additional smaller oscillations appear in the volume plot per oscillation in the other plots.
+*/
+
+include tests/0-presets/preset_Repressilator
+
+global_params([ seed := 8685, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_custom"
+	, division_gate := "ga_yesA"
+	//, death_gate := "ga_notA"
+	, growth_rate := { 0.03, 0.0003 }
+	//, death_threshold := 1.0
+]);
+
+cell_type([ name := "cell_custom", strain := "str_custom", plasmids := {"bp_ABC"}, molecules := {"prot_A"} ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_custom"}, amount := 10.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+plot([ name := "plot_protA", fields := {"prot_A"}, stats := {"avg"} ]);
+plot([ name := "plot_gr", fields := { "_gr" }, stats := "avg" ]);
+plot([ name := "plot_vol", fields := { "_volume" }, stats := "avg" ]);
+plot([ name := "plot_all", fields := { "prot_A", "_gr", "_volume" }, stats := "avg" ]);

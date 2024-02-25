@@ -1,0 +1,48 @@
+/*To test the mutation chaining with bplasmids. plasmids and amounts fields on mutation; gate, rate, rate_fun, mutations and mutations_probs fields of mutation_process
+To test:
+ - Try different mutRate# and check that the resulting ratios match 
+ - Set one rate to zero to breack the loop
+*/
+
+
+include gro3
+
+mutRate1 := 0.1;
+mutRate2 := 0.01;
+mutRate3 := 0.001;
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", strain := "_str_slow", bplasmids := {"bp_A"} ]);
+
+//---plasmids
+bplasmid([ name := "bp_A" ]);
+bplasmid([ name := "bp_B" ]);
+bplasmid([ name := "bp_C" ]);
+
+
+//---mutations
+mutation([ name := "mut_AtoB", plasmids := { "bp_A", "bp_B" }, amounts := { -1, 1 } ]);
+mutation([ name := "mut_BtoC", plasmids := { "bp_B", "bp_C" }, amounts := { -1, 1 } ]);
+mutation([ name := "mut_CtoA", plasmids := { "bp_C", "bp_A" }, amounts := { -1, 1 } ]);
+
+mutation_process([ name := "mutp_AtoB", gate := "bp_A", mutations := { "mut_AtoB" }, rate := mutRate1 ]);
+mutation_process([ name := "mutp_BtoC", gate := "bp_B", mutations := { "mut_BtoC" }, rate := mutRate2 ]);
+mutation_process([ name := "mutp_CtoA", gate := "bp_C", mutations := { "mut_CtoA" }, rate := mutRate3 ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_red", gate := "bp_A", rgb := _red ]);
+cell_colour([ name := "ccol_green", gate := "bp_B", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "bp_C", rgb := _blue ]);
+
+//---
+cells_plot([ name := "cplt_comp", fields := { "bp_A", "bp_B", "bp_C" } , stats := { "avg"} ]);

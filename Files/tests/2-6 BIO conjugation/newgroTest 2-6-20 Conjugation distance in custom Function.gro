@@ -1,0 +1,61 @@
+/*To test the use of the distance between the cells (centers) in the custom recipient functions (recipient_fun field of pilus). "pil_A" has a rate that is independent of the distance while that of "pil_B" is reduced linearly with the distance. Check that "cell_donorB", with "pil_B", selects more frequently the neighbours that are closer and aligned as recipients. */
+
+include gro3
+
+copyNum := 20.0;
+iniCopies := 10;
+
+global_params([ seed := 123443 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donorA", strain := "_str_nogrowth", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_donorB", strain := "_str_nogrowth", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_recipient", strain := "_str_slow" ]);
+
+
+//---plasmids
+plasmid([ name := "p_A", oriTs := {"ot_A", "ot_B"}, operons := {"op_rep"} ]);
+
+
+//---gene expression
+molecule([ name := "mol_rep", times := { -10.0, 0.01 } ]);
+operon([ name := "op_rep", gate := "ev_recipient", output := {"mol_rep"} ]);
+
+
+//---conjugation
+bgate([ name := "bga_validRecipient", input := {"-p_A"} ]);
+
+pilus([ name := "pil_A"
+	, donor_gate := "cell_donorA"
+	//, recipient_gate := "bga_validRecipient"
+	, max_rate := 0.1
+	, neighbours_w := 100.0
+]);
+
+function([ name := "fun_distance", type := "product", input := {"_qm_neigh_distance"}, params := { -5.0, 1.0 } ]);
+pilus([ name := "pil_B"
+	, donor_gate := "cell_donorB"
+	//, recipient_gate := "bga_validRecipient"
+	, recipient_fun := "fun_distance"
+	, max_rate := 100.0
+	, neighbours_w := 100.0
+]);
+
+oriT([ name := "ot_A", pilus := "pil_A", recipient_event := "ev_recipient" ]);
+oriT([ name := "ot_B", pilus := "pil_B", recipient_event := "ev_recipient" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donorA", cell_types := {"cell_donorA"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 50.0 ] ]);
+cell_placer([ name := "cp_donorB", cell_types := {"cell_donorB"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 50.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_dark_green", gate := "cell_recipient", rgb := _green, intensity := 0.3 ]);
+cell_colour([ name := "ccol_green", gate := "mol_rep", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "cell_donorA", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "cell_donorB", rgb := _blue ]);

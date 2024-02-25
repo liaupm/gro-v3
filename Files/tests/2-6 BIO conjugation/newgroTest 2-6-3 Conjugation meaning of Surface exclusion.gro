@@ -1,0 +1,77 @@
+/*To test the effect of surface exclusion of the transconjugants, preventing the cells from receiving the same plasmid multiple times. Conditional pilus (donor_gate) and rate (max_rate), including random rate. Using a bplasmid for simplicity. Also, conjugation events.
+Surface exclusion prevents futile conjugations, increasing the effective rate. The spread of the plasmid is exponential with surface exclusion while it is linear without it. 
+The count of conjugation events is lower for the recipient with surface exclusion. Once all the cells have the plasmids, there are no more conjugation events for SE cells but they continue happening in those without SE.
+
+To test, try:
+ - High neighbours_w and low max_rate. If the rate of conjugation is more or less constant and independent of the number of valid neighbours (those whitout surface exclusion), then sucessful conjugations happen at a higher rate in the case of surface exclusion. 
+ - Low neighbours_w and high max_rate: When the rate is scaled by the number of valid neighbours, the possitive effect to the rate of neighbours without surface exclusion can offset the waste of trials that they produce. The apparent result is as if the rate was independent of the number of neighbours. 
+ - Comment out/ uncomment line ", donor_gate := "ga_donor" " to allow the transconjugant to transmit the plasmid or not.
+  
+The randomness in the initial spatial disposition of the cell types affects the result of individual runs.
+The results are valid until the two clusters of cells get to touch each other (increase the distance param for longer runs).
+*/
+
+include gro3
+
+distance := 600.0;
+
+global_params([ seed := 877733, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor", strain := "_str_nogrowth", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_recipientNoSE", strain := "_str_slow" ]);
+cell_type([ name := "cell_recipientSE", strain := "_str_slow" ]);
+
+
+//---conjugation
+bgate([ name := "bga_noPlas", input := { "-p_A" } ]);
+bgate([ name := "bga_notSurfaceEx", type := "OR", input := { "cell_recipientNoSE", "-p_A" } ]);
+
+pilus([ name := "pil_A"
+	//, donor_gate := "cell_donor"
+	, recipient_gate := "bga_notSurfaceEx"
+	, max_rate := { 0.1, 0.0 }
+	, neighbours_w := 10.0
+	, vol_scaling := false
+]);
+
+oriT([ name := "ot_A", pilus := "pil_A", recipient_event := "ot_A_evrepicipient" ]);
+plasmid([ name := "p_A", oriTs := {"ot_A"} ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donorNoSE", cell_types := {"cell_donor"}, amount := 10.0, coords := [ x := -distance, y := -distance, r := 5.0 ] ]);
+cell_placer([ name := "cp_recipientNoSE", cell_types := {"cell_recipientNoSE"}, amount := 1000.0, coords := [ x := -distance, y := -distance, r := 350.0 ] ]);
+
+//---
+cell_placer([ name := "cp_donorSE", cell_types := {"cell_donor"}, amount := 10.0, coords := [ x := distance, y := distance, r := 5.0 ] ]);
+cell_placer([ name := "cp_recipientSE", cell_types := {"cell_recipientSE"}, amount := 1000.0, coords := [ x := distance, y := distance, r := 350.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "ot_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "cell_donor", rgb := _red ]);
+cell_colour([ name := "ccol_dark", gate := "cell_recipientNoSE", rgb := _blue, intensity := 0.75 ]);
+cell_colour([ name := "ccol_blue", gate := "cell_recipientSE", rgb := _blue ]);
+
+//---
+bgate([ name := "ga_gotPlasNoSE", input := { "cell_recipientNoSE", "p_A" } ]);
+bgate([ name := "ga_gotPlasSE", input := { "cell_recipientSE", "p_A" } ]);
+bgate([ name := "ga_gotAny", type := "OR", input := { "ga_gotPlasNoSE", "ga_gotPlasSE" } ]);
+
+pop_stat([ name := "stat_NoSE", gate := "cell_recipientNoSE", input := "p_A", stats := {"avg"} ]);
+pop_stat([ name := "stat_SE", gate := "cell_recipientSE", input := "p_A", stats := {"avg"} ]);
+plot([ name := "plot_avg", pop_fields := { "stat_NoSE", "stat_SE" } ]);
+
+pop_function([ name := "pfun_ratio", type := "product", input := { "stat_SE", "stat_NoSE" }, params := { 1.0, -1.0 } ]);
+plot([ name := "plot_ratio", pop_fields := { "pfun_ratio" } ]);
+
+pop_stat([ name := "stat_accNoSE", gate := "cell_recipientNoSE", input := "ot_A_evrepicipient", stats := {"acc"} ]);
+pop_stat([ name := "stat_accSE", gate := "cell_recipientSE", input := "ot_A_evrepicipient", stats := {"acc"} ]);
+plot([ name := "plot_events", pop_fields := { "stat_accNoSE", "stat_accSE" } ]);
+
+pop_function([ name := "pfun_eventRatio", type := "product", input := { "stat_accSE", "stat_accNoSE" }, params := { 1.0, -1.0 } ]);
+plot([ name := "plot_ratio_events", pop_fields := { "pfun_eventRatio" } ]);

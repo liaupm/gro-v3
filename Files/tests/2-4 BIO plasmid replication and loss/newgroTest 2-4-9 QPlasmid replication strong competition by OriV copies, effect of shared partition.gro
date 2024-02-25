@@ -1,0 +1,71 @@
+/*To test the effect of oriv multiplicity in replication rates and competition. The plasmids with 2 copies replicate at double rate and outcompete those with a single copy because they add up to the same copy number pool (same incompatibility group). A2 outcompetes A; B2 outcompetes B. Because the plasmids in the "A group" also share the partition system, the loss of plasmid A is faster than that of B (see gates plot and the colour of cells). 
+
+To test:
+ - Change copyNum and iniCopies
+ - Use asymmetric or binomial partition instead of exact symmetric one
+ - Change the replication rate
+ - Change the oriv multiplicity of plasmids A2 and B2. If a single copy, they must behave like A and B and coexist with them
+ - Test the effect of sensitivity global param
+*/
+
+include gro3
+
+copyNum := 50.0;
+iniCopies := 10;
+
+global_params([ seed := 133087, show_plots := true, sensitivity := 0.01 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_AB"
+	, strain := "_str_slow"
+	, qplasmids := {"qp_A", "qp_A2", "qp_B", "qp_B2" } 
+	, qplasmid_amounts := { iniCopies, iniCopies, iniCopies, iniCopies }
+]);
+
+
+//---replication
+function([ name := "fun_concA", input := {"ov_A"}, auto_vol := "division" ]);
+qgate([ name := "qga_copyNum_ovA", input := "fun_concA", value := copyNum, operator := "<" ]);
+function([ name := "fun_rateA", input := {"ov_A"}, type := "sum", params := {0.1}, auto_vol := "division" ]);
+oriv([ name := "ov_A", gate := "qga_copyNum_ovA", rate_fun := "fun_rateA" ]);
+partition_system([ name := "ps_A", gate := "_ga_true", fraction := 0.5 ]);
+
+qplasmid([ name := "qp_A", partition_system := "ps_A", oriVs := {"ov_A"} ]);
+qplasmid([ name := "qp_A2", partition_system := "ps_A", oriVs := {"ov_A", "ov_A"} ]);
+
+//---
+function([ name := "fun_concB", input := {"ov_B"}, auto_vol := "division" ]);
+qgate([ name := "qga_copyNum_ovB", input := "fun_concB", value := copyNum, operator := "<" ]);
+function([ name := "fun_rateB", input := {"ov_B"}, type := "sum", params := {0.1}, auto_vol := "division" ]);
+oriv([ name := "ov_B", gate := "qga_copyNum_ovB", rate_fun := "fun_rateB" ]);
+partition_system([ name := "ps_B", gate := "_ga_true", fraction := 0.5 ]);
+partition_system([ name := "ps_B2", gate := "_ga_true", fraction := 0.5 ]);
+
+qplasmid([ name := "qp_B", partition_system := "ps_B", oriVs := {"ov_B"} ]);
+qplasmid([ name := "qp_B2", partition_system := "ps_B2", oriVs := {"ov_B", "ov_B"} ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_AB", cell_types := { "cell_AB" }, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 10.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red ]);
+cell_colour([ name := "ccol_green", gate := "qp_B", rgb := _green ]);
+
+//---
+cells_plot([ name := "cplt_qpA", fields := { "qp_A" } , stats := {"avg", "min", "max"} ]);
+//cells_plot([ name := "cplt_qpA2", fields := { "qp_A2" } , stats := {"avg", "min", "max"} ]);
+//cells_plot([ name := "cplt_qpB", fields := { "qp_B" } , stats := {"avg", "min", "max"} ]);
+
+cells_plot([ name := "cplt_plas", fields := { "qp_A", "qp_A2", "qp_B", "qp_B2" } , stats := {"avg"} ]);
+//cells_plot([ name := "cplt_orivs", fields := { "ov_A", "ov_B" } , stats := {"avg"} ]);
+
+cells_plot([ name := "cplt_AB", fields := { "fun_concA", "fun_concB" } , stats := {"avg"} ]);
+
+bgate([ name := "bga_A", input := {"qp_A"} ]);
+bgate([ name := "bga_B", input := {"qp_B"} ]);
+cells_plot([ name := "cplt_gates", fields := { "bga_A", "bga_B" } , stats := {"avg"} ]);

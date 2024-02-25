@@ -1,0 +1,63 @@
+/*To test the regulation element to produce negative noise. Using custom randomness to test both uniform and normal. 
+To test:
+ - Try different acti_on parameters and check that the fraction over the 0.5 threshold 
+ - Try inertia and inheritance, only for the normal randomness (that modifies other types of distributions)
+*/
+
+include gro3
+
+//---params
+t_act := 5.0;
+t_act_var := 1.0;
+t_deg := 5.0;
+t_deg_var := 1.0;
+
+actiL := 0.0;
+actiU := 1.0;
+
+actiMean := 0.55; //expected ~0.7 of the cells the > 0.5 theshold
+actiStddev := 0.1;
+
+inertiaVal := 0.8;
+inheritanceVal := 0.9;
+
+global_params([ seed := 111142, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_B", plasmids := {"p_B"} ]);
+
+
+//---gene expression
+molecule([ name := "mol_A", times := { -t_deg, t_act }, times_var := { t_deg_var, t_act_var } ]);
+molecule([ name := "mol_B", times := { -t_deg, t_act }, times_var := { t_deg_var, t_act_var } ]);
+
+randomness([ name := "rnd_uni", dist_type := "uniform", inertia := 1.0, inheritance := 0.0 ]);
+regulation([ name := "reg_uni", randomness := "rnd_uni", acti_on := { actiL, actiU } ]);
+randomness([ name := "rnd_normal", inertia := inertiaVal, inheritance := inheritanceVal ]);
+regulation([ name := "reg_normal", randomness := "rnd_normal", acti_on := { actiMean, actiStddev } ]);
+
+operon([ name := "op_A", regulation := "reg_uni", output := {"mol_A"} ]);
+operon([ name := "op_B", regulation := "reg_normal", output := {"mol_B"} ]);
+plasmid([ name := "p_A", operons := { "op_A" } ]);
+plasmid([ name := "p_B", operons := { "op_B" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ x := -300.0, y := -300.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 100.0, coords := [ x := 300.0, y := 300.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_dark_green", gate := "cell_A", rgb := _green, intensity := 0.3 ]);
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);
+
+cell_colour([ name := "ccol_dark_red", gate := "cell_B", rgb := _red, intensity := 0.3 ]);
+cell_colour([ name := "ccol_red", gate := "mol_B", rgb := _red ]);
+
+//---
+plot([ name := "plot_A", fields := {"mol_A"}, gate := "cell_A", stats := "avg" ]);
+plot([ name := "plot_B", fields := {"mol_B"}, gate := "cell_B", stats := "avg" ]);

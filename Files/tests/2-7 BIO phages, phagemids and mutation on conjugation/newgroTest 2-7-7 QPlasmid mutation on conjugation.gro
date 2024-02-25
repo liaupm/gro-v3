@@ -1,0 +1,95 @@
+/*
+*/
+
+include gro3
+
+mutGate1 := "_ga_true";
+//mutGate1 := "_ga_false";
+mutGate2 := "_ga_true";
+//mutGate2 := "_ga_false";
+
+mutProb1 := 1.0;
+mutProb2 := 1.0;
+
+muts1 := {"mut_B"};
+//muts1 := {"mut_B", "mut_AtoB"};
+//muts1 := {""};
+
+//muts2 := {"", "mut_notA"};
+//muts2 := {"mut_0", "mut_notA"};
+muts2 := {""};
+
+//conjMutations := {};
+//conjMutations := {"mutp_1"};
+conjMutations := {"mutp_1", "mutp_2"};
+
+copyNum := 10.0;
+
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor", strain := "_str_nogrowth", qplasmids := {"qp_A"}, qplasmid_amounts := {copyNum} ]);
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth" ]);
+
+
+//---plasmdids
+qplasmid([ name := "qp_A"
+	, oriTs := {"ot_A"}
+	, orivs := {"ov_A"}
+	, copy_control := {"cc_A"} 
+	, repli_mutations := conjMutations
+	, repli_mut_keys := {2,2}
+]);
+
+qplasmid([ name := "qp_B", orivs := {"ov_A"}, copy_control := {"cc_A"} ]);
+
+
+//---replication 
+function([ name := "fun_copyNum", input := {"ov_A"}, auto_vol := "division" ]);
+qgate([ name := "qga_copyNum", input := "fun_copyNum", operator := "<", value := copyNum ]);
+copy_control([ name := "cc_A", gate := "_ga_true", w := 0.01 ]);
+oriv([ name := "ov_A", gate := "qga_copyNum", vmax := 10.0, w := 0.1, copy_controls := {"cc_A"} ]);
+
+//---conjugation
+bgate([ name := "ga_notEex", input := {"-qp_A", "-qp_B"} ]);
+pilus([ name := "pil_A"
+	//, donor_gate := "cell_donor"
+	//, recipient_gate := "ga_notEex"
+	, max_rate := 0.01
+]);
+
+oriT([ name := "ot_A", pilus := "pil_A", mutation_keys := {2} ]);
+
+
+//---mutation
+mutation([ name := "mut_0", plasmids := {}, amounts := {} ]);
+mutation([ name := "mut_normal", plasmids := {"qp_A"}, amounts := {1} ]);
+mutation([ name := "mut_B", plasmids := {"qp_B"}, amounts := {1} ]);
+mutation([ name := "mut_notA", plasmids := {"qp_A"}, amounts := {-1} ]);
+mutation([ name := "mut_AtoB", plasmids := {"qp_A", "qp_B"}, amounts := {-1} ]);
+
+mutation_process([ name := "mutp_1", gate := mutGate1, mutations := muts1, rate := mutProb1 ]);
+mutation_process([ name := "mutp_2", gate := mutGate2, mutations := muts2, rate := mutProb2 ]);
+
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor", cell_types := { "cell_donor" }, amount := 10.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 300.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "qp_A", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "qp_B", rgb := _blue ]);
+cell_colour([ name := "ccol_red", gate := "cell_donor", rgb := _red ]);
+
+plot([ name := "plot_plas", fields := {"qp_A", "qp_B"}, stats := "avg" ]);
+
+bgate([ name := "bga_gotA", input := {"cell_recipient", "qp_A"} ]);
+plot([ name := "plot_plasA", gate := "bga_gotA", fields := {"qp_A"}, stats := {"avg", "min", "max" }, auto_vol := "division" ]);
+bgate([ name := "bga_gotB", input := {"cell_recipient", "qp_B"} ]);
+plot([ name := "plot_plasB", gate := "bga_gotB", fields := {"qp_B"}, stats := {"avg", "min", "max" }, auto_vol := "division" ]);

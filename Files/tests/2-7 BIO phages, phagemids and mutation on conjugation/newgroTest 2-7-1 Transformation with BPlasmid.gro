@@ -1,0 +1,70 @@
+/*
+*/
+
+include gro3
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", strain := "_str_slow" ]);
+
+
+//--gene expression
+molecule([ name := "mol_virion", times := { -5.0, 1.0 } , times_var := { 0.0, 0.0 } ]);
+molecule([ name := "mol_viralProt", times := { -20.0, 20.0 } , times_var := { 0.0, 0.0 } ]);
+
+operon([ name := "op_phage", output := {"mol_viralProt"} ]);
+bplasmid([ name := "bp_phage", operons := {"op_phage"}, loss_prob := 0.1 ]);
+
+
+//---metabolism
+signal([ name := "s_virion", kdiff := 0.2, kdeg := 0.1, colour := _magenta, colour_sat := 1.0 ]);
+
+flux([ name := "flux_virion_in"
+	, signal := "s_virion"
+	, output := {"mol_virion"}
+	, amount := -0.1
+	, threshold := 0.5
+]);
+
+
+//---mutations
+mutation([ name := "mut_phage", plasmids := { "bp_phage" } , amounts := { 1 } ]);
+
+bgate([ name := "bga_eex" , input := {"mol_virion", "-bp_phage"} ]);
+function([ name := "fun_phageIn", input := { "_qm_vol" }, type := "sum", params := { 0.01 } ]);
+
+mutation_process([ name := "mutp_phage"
+	//, gate := "mol_virion"
+	, gate := "bga_eex"
+	, mutations := {"mut_phage"}
+	, rate_fun := "fun_phageIn"
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+//---
+timer([ name := "t_A", period := 10.0 ]);
+
+signal_placer([ name := "sp_virion"
+	, signals := {"s_virion"}
+	, amount := 3000.0
+	, amount_var := 0.0
+	, sources := 1.0
+	, coords := [ x := 100.0, y := 0.0, r := 100.0 ]
+	, timer := "t_A"
+]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_virion", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "bp_phage", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "mol_viralProt", rgb := _blue ]);
+
+//---
+cells_plot([ name := "cplt_q", fields := { "mol_virion", "bp_phage" , "op_phage", "mol_viralProt" } , stats := {"avg"} ]);

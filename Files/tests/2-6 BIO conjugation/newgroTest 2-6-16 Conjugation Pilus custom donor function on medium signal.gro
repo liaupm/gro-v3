@@ -1,0 +1,71 @@
+/*To test a custom function for the maximum conjugation rate (donor_fun of pilus) that changes in time. It depends on the concentration in the medium of a signal. The cells placed in the region with a higher concentration of the signal produce more conjugation events. Once the signal dissapears there are no more conjugation events. */
+
+include gro3
+
+distance := 300.0;
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donorA", strain := "_str_nogrowth", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_donorB", strain := "_str_nogrowth", plasmids := {"p_B"} ]);
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth" ]);
+
+//---plasmids
+plasmid([ name := "p_A", oriTs := {"ot_A"} ]);
+plasmid([ name := "p_B", oriTs := {"ot_A"} ]);
+
+
+//---conjugation
+function([ name := "fun_donor", input := {"_conc_s_A"}, params := {0.01} ]);
+bgate([ name := "ga_donor", type := "OR", input := { "cell_donorA", "cell_donorB" } ]);
+bgate([ name := "ga_noPlas", input := {"-ot_A"} ]);
+
+pilus([ name := "pil_A"
+	, donor_gate := "ga_donor"
+	, recipient_gate := "ga_noPlas"
+	, donor_fun := "fun_donor"
+	, max_rate := { 0.0, 0.0 }
+]);
+
+oriT([ name := "ot_A", pilus := "pil_A" ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.01, colour := _magenta, colour_sat := 1.0 ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+timer([ name := "t_cells", start := 150.0, stop := 150.0, period := -1.0 ]);
+
+cell_placer([ name := "cp_donorA", timer := "t_cells", cell_types := {"cell_donorA"}, amount := 20.0, coords := [ x := -distance, y := 0.0, r := 150.0 ] ]);
+cell_placer([ name := "cp_recipientA", timer := "t_cells", cell_types := {"cell_recipient"}, amount := 200.0, coords := [ x := -distance, y := 0.0, r := 150.0 ] ]);
+cell_placer([ name := "cp_donorB", timer := "t_cells", cell_types := {"cell_donorB"}, amount := 20.0, coords := [ x := distance, y := 0.0, r := 150.0 ] ]);
+cell_placer([ name := "cp_recipientB", timer := "t_cells", cell_types := {"cell_recipient"}, amount := 200.0, coords := [ x := distance, y := 0.0, r := 150.0 ] ]);
+
+//---
+signal_placer([ name := "sp_A", signals := {"s_A"}, amount := 100000.0, sources := 1.0, coords := [ x := -distance, y := 0.0, r := 0.0 ] ]);
+signal_placer([ name := "sp_B", signals := {"s_A"}, amount := 1000.0, sources := 1.0, coords := [ x := distance, y := 0.0, r := 0.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_blue", gate := "p_A", rgb := _blue ]);
+cell_colour([ name := "ccol_red", gate := "p_B", rgb := _red ]);
+cell_colour([ name := "ccol_green", gate := "ga_donor", rgb := _green ]);
+
+bgate([ name := "ga_gotA", input := { "cell_recipient", "p_A" } ]);
+bgate([ name := "ga_gotB", input := { "cell_recipient", "p_B" } ]);
+bgate([ name := "ga_gotAny", input := { "cell_recipient", "ot_A" } ]);
+
+pop_stat([ name := "stat_A", gate := "ga_gotAny", input := "p_A", stats := {"avg"} ]);
+pop_stat([ name := "stat_B", gate := "ga_gotAny", input := "p_B", stats := {"avg"} ]);
+plot([ name := "plot_avg", pop_fields := { "stat_A", "stat_B" } ]);
+
+pop_function([ name := "pfun_ratioAtoB", type := "product", input := {"stat_A", "stat_B"}, params := { 1.0, -1.0 } ]);
+plot([ name := "plot_ratioAtoB", pop_fields := { "pfun_ratioAtoB" } ]);
+
+plot([ name := "plot_concA", gate := "cell_donorA", fields := { "_conc_s_A" }, stats := "avg" ]);
+plot([ name := "plot_concB", gate := "cell_donorB", fields := { "_conc_s_A" }, stats := "avg" ]);

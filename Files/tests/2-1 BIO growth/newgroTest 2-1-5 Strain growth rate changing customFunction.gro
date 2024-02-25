@@ -1,0 +1,104 @@
+/*To test the use of custom growth rate functions that change in time, alone and with randomness. Fields: growth_rate and growth_fun of strain
+The cells in the area with more signal pulses growth more.
+
+Try the alternative ways to calculate the growth rate and add randomness:
+ - Custom growth_fun with rnd at the function and growth_rate { 0.0, 0.0 }
+ - Custom growth_fun without rnd with rnd at the strain
+ - Any number of _biomass fluxes that are automatically added only if there is no growth_fun, with rnd in one of them
+ - Any number of _biomass fluxes that are automatically added only if there is no growth_fun, with rnd in the strain
+*/
+
+include gro3
+
+rndParams := { 0.01, 0.02 };
+
+global_params([ seed := 8685, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+randomness([ name := "rnd_A", dist_type := "uniform", inertia := 0.0, inheritance := 1.0 ]);
+
+function([ name := "fun_growth", input := {"_conc_s_A" }, params := { 0.005 }, max := 0.03 ]);
+function([ name := "fun_growth_rnd", input := {"_conc_s_A" }, params := { 0.005 }, max := 0.03, rnd := "rnd_A", rnd_params := rndParams  ]);
+
+strain([ name := "str_A"
+	//, growth_rate_rnd := "rnd_A"
+	//, growth_fun :=  "fun_growth"
+	//, growth_fun := "fun_growth_rnd"
+	//, growth_rate := rndParams
+	, growth_rate := { 0.0, 0.0 }
+	, death_threshold := -1000.0
+]);
+
+cell_type([ name := "cell_A", strain := "str_A" ]);
+cell_type([ name := "cell_B", strain := "str_A" ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.1, colour := _magenta, colour_sat := 10.0 ]);
+
+function([ name := "fun_growthFlux_1", input := {"_conc_s_A" }, params := { 0.003 }, max := 0.015 ]);
+flux([ name := "flux_growth1"
+	, signal := "_biomass"
+	, amount_fun := "fun_growthFlux_1"
+	//, amount_rnd := "rnd_A"
+	//, amount_params := rndParams
+	//, amount := 0.03
+	, absolute := true
+]);
+
+function([ name := "fun_growthFlux_2", input := {"_conc_s_A" }, params := { 0.002 }, max := 0.015 ]);
+flux([ name := "flux_growth2"
+	, signal := "_biomass"
+	, amount_fun := "fun_growthFlux_2"
+	//, amount_rnd := "rnd_A"
+	//, amount := 0.02
+	, absolute := true
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 10.0, coords := [ x := -200.0, y := 0.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 10.0, coords := [ x := 200.0, y := 0.0, r := 0.0 ] ]);
+
+//---
+timer([ name := "t_A", start := 50.0, period := 30.0 ]);
+
+signal_placer([ name := "sp_A"
+	, timer := "t_A"
+	, signals := {"s_A"}
+	, amount := 3000.0
+	, sources := 3.0
+	, coords := [ x := -200.0, y := 0.0, r := 150.0 ]
+]);
+
+signal_placer([ name := "sp_B"
+	, timer := "t_A"
+	, signals := {"s_A"}
+	, amount := 3000.0
+	, sources := 1.0
+	, coords := [ x := 200.0, y := 0.0, r := 150.0 ]
+]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "cell_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "cell_B", rgb := _red ]);
+
+//---
+//plot([ name := "plot_avgs", fields := {"cell_A", "cell_B"}, stats := "avg" ]);
+
+pop_stat([ name := "stat_grA", gate := "cell_A", input := "_gr", stats := { "avg", "min", "max" } ]);
+pop_stat([ name := "stat_grB", gate := "cell_B", input := "_gr", stats := { "avg", "min", "max" } ]);
+//plot([ name := "plot_gr", pop_fields := { "stat_grA_avg", "stat_grB_avg" } ]);
+
+plot([ name := "plot_grA", pop_fields := { "stat_grA" } ]);
+plot([ name := "plot_grB", pop_fields := { "stat_grB" } ]);
+
+pop_stat([ name := "stat_concA", gate := "cell_A", input := "_conc_s_A", stats := { "avg", "min", "max" } ]);
+pop_stat([ name := "stat_concB", gate := "cell_B", input := "_conc_s_A", stats := { "avg", "min", "max" } ]);
+
+plot([ name := "plot_concA", pop_fields := { "stat_concA" } ]);
+plot([ name := "plot_concB", pop_fields := { "stat_concB" } ]);

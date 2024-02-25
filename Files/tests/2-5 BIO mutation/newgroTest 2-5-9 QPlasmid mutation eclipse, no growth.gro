@@ -1,0 +1,89 @@
+/*To test the eclipse period of qplasmids produced by a mutation (not an oriV), in the absence of cell growth, division or plasmid replication. plasmids and amounts fields on mutation; gate, rate, rate_fun, mutations and mutations_probs fields of mutation_process
+To test:
+ - Use bEclipse to switch the eclipse on/off
+ - Change the duration of the ecipse in either direction using the different ways
+ - Plasmids in the eclipse period are ignored by the mutation processes
+*/
+
+include gro3
+
+iniCopies := 10.0;
+rateA := 0.01;
+rateB := 0.01;
+
+bEclipse := true;
+//bEclipse := false;
+//eclipseA := 10.0;
+eclipseA := { 10.0, 1.0 };
+//eclipseB := [ type := "normal", params := { 0.0, 2.0 } ];
+distribution([ name := "dist_eclipseB", type := "uniform", params := {20.0, 30.0} ]);
+eclipseB := "dist_eclipseB";
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A"
+	, strain := "_str_nogrowth"
+	, qplasmids := {"qp_A"} 
+	, qplasmid_amounts := { iniCopies }
+	, qplasmids_as_concs := false
+]);
+
+//---plasmids
+qplasmid([ name := "qp_A", eclipse := eclipseA, eclipse_marker := "qpA_eclipse" ]);
+qplasmid([ name := "qp_B", eclipse_dist := eclipseB, eclipse_marker := "qpB_eclipse" ]);
+
+
+//---mutations
+mutation([ name := "mut_AtoB", plasmids := { "qp_A", "qp_B" } , amounts := { -1, 1 } ]);
+mutation([ name := "mut_BtoA", plasmids := { "qp_A", "qp_B" } , amounts := { 1, -1 } ]);
+
+//---
+function([ name := "fun_linearA", input := { "qp_A" }, type := "sum", params := { rateA }, auto_vol := "division" ]);
+qgate([ name := "qga_qpA", input := "qp_A", operator := ">=", value := 1.0 ]);
+
+mutation_process([ name := "mutp_AtoB"
+	, gate := "qga_qpA"
+	, rate_fun :=  "fun_linearA"
+	, mutations := {"mut_AtoB"}
+	, has_eclipse := bEclipse
+]);
+
+//---
+function([ name := "fun_linearB", input := { "qp_B" }, type := "sum", params := { rateB }, auto_vol := "division" ]);
+qgate([ name := "qga_qpB", input := "qp_B", operator := ">=", value := 1.0 ]);
+
+mutation_process([ name := "mutp_BtoA"
+	, gate := "qga_qpB"
+	, rate_fun := "fun_linearB"
+	, mutations := {"mut_BtoA"}
+	, has_eclipse := bEclipse
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 1.0, coords := [ r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpAlog", input := {"qp_A"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_red", gate := "qp_A", rgb := _red, target := "fun_qpAlog", scale := 0.5 ]);
+
+function([ name := "fun_qpBlog", input := {"qp_B"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_green", gate := "qp_B", rgb := _green, target := "fun_qpBlog", scale := 0.5 ]);
+
+//---
+//plot([ name := "cplt_qpA", fields := { "qp_A" }, stats := { "avg", "min", "max" } ]);
+//plot([ name := "cplt_qpB", fields := { "qp_B" }, stats := { "avg", "min", "max" } ]);
+
+function([ name := "fun_A", input := { "qp_A", "qpA_eclipse" } ]);
+function([ name := "fun_B", input := { "qp_B", "qpB_eclipse" } ]);
+function([ name := "fun_total", input := { "fun_A", "fun_B" } ]);
+plot([ name := "cplt_all", fields := { "fun_A", "fun_B", "fun_total" }, stats := { "avg"} ]);
+//plot([ name := "cplt_eclipses", fields := { "qpA_eclipse", "qpB_eclipse" } , stats := { "avg"} ]);
+
+plot([ name := "cplt_A", fields := { "qp_A", "qpA_eclipse", "fun_A" }, stats := { "avg"} ]);
+plot([ name := "cplt_B", fields := { "qp_B", "qpB_eclipse", "fun_B" }, stats := { "avg"} ]);

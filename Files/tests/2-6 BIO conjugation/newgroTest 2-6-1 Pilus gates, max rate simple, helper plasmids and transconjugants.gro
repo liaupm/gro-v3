@@ -1,0 +1,66 @@
+/*To test te basics of conjugation. Conditional pilus (donor_gate) and rate (max_rate), including random rate. Using a bplasmid for simplicity
+The plasmid must be transmitted only from the cells that qualify as donor (donor_gate true and carrying a compatible plasmid)
+The pilus needs the "op_helper", which can be carried by the same plasmid (conjugative, as "p_A") or another one, and also a compatible oriT. Only the combinations "p_A" or "p_B" + "p_helper" are good.
+
+To test the conditional nature of conjugation on the recipient side. Fields: recipient_gate
+Only the cells where the recipient_gate evaluates to true must qualify as valid recipients. This acts as surface exclussion while the same field in oriT is the proper entry expclusion. 
+Expected behaviour: original donors yellow, eex cells blue, valid recipients black and turn to green when receiving the plasmid. Cyan cells must not appear. 
+
+To test: 
+ - Change selectedDonor and check that only those that are valid donors produce conjugation events.
+ - Change donorGate and recipientGate to set entry exclusion or make transconjugant able to further transmit the plasmid
+ - Change max_rate, deterministic and random, with custom and default max_rate_rnd
+*/
+
+include gro3
+
+selectedDonor := "cell_donor1";
+donorGate := "op_helper"; //"op_helper", "_ga_fase", "_ga_true"
+recipientGate := "ga_notEexNotSame"; //"ga_notEex", "ga_notEexNotSame", "_ga_fase", "_ga_true"
+
+global_params([ seed := 123443 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor1", strain := "_str_nogrowth", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_donor2", strain := "_str_nogrowth", plasmids := {"p_B", "p_helper"} ]);
+cell_type([ name := "cell_notDonor1", strain := "_str_nogrowth", plasmids := {"p_B"} ]);
+cell_type([ name := "cell_notDonor2", strain := "_str_nogrowth", plasmids := {"p_helper"} ]);
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth" ]);
+cell_type([ name := "cell_eex", strain := "_str_nogrowth" ]);
+
+
+//---conjugation
+bgate([ name := "ga_notEex", input := {"-cell_eex"} ]);
+bgate([ name := "ga_notEexNotSame", type := "NOR", input := { "cell_eex", selectedDonor } ]);
+
+randomness([ name := "rnd_conj", inertia := 0.0, inheritance := 0.0, sampling_time := -1.0 ]);
+pilus([ name := "pil_A"
+	, donor_gate := donorGate
+	, recipient_gate := recipientGate
+	//, max_rate_rnd := "rnd_conj"
+	//, max_rate := { 0.1, 0.0 }
+	, max_rate := 0.001
+	, neighbours_w := 0.75
+]);
+
+operon([ name := "op_helper" ]);
+oriT([ name := "ot_A", pilus := "pil_A" ]);
+
+plasmid([ name := "p_helper", operons := {"op_helper"} ]); //helper, not trnasmissible
+plasmid([ name := "p_A", oriTs := {"ot_A"}, operons := {"op_helper"} ]); //conjugative
+plasmid([ name := "p_B", oriTs := {"ot_A"} ]); //transmissible
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor", cell_types := { selectedDonor }, amount := 5.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 50.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_eex", cell_types := {"cell_eex"}, amount := 50.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "ot_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := selectedDonor, rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "cell_eex", rgb := _blue ]);

@@ -1,0 +1,95 @@
+/*To test the initial amounts of qplasmids. Fields copy_num, copy_num_params and copy_num_dist of qplasmid; qplasmid_amounts, qplasmid_vars, qplasmid_dists and qplasmids_as_conc of cell_type
+Each qplasmid has a diferent way to define its fallback copy number. The default is 1.0 (deterministic).
+These can be overriden at cell_type level. Each cell_type has a variable number of qplasmids and different ways to describe the copy numbers.
+
+To test:
+ - Change the fallback params
+ - Change the params at cell_type level
+ - Compare qplasmids_as_concs (bAsConcs) true vs false for different values of cellVol
+ - Check the overriding priority: qplasmid_dists > qplasmid_amounts ("" to skip) and the autocompletion of qplasmid_vars
+*/
+
+include gro3
+
+cellVol := {2.0, 2.0};
+bAsConcs := false;
+
+global_params([ seed := 133087, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_one", ini_vol := cellVol, growth_rate := { 0.0, 0.0 } ]);	
+
+distribution([ name := "dist_qpA_A", type := "uniform", params := { 20.0, 40.0 } ]);
+
+cell_type([ name := "cell_A"
+	, strain := "str_one"
+	, qplasmids := {"qp_A"} 
+	, qplasmid_dists := {"dist_qpA_A"}
+	, qplasmid_amounts := {0.0}
+	, qplasmids_as_conc := bAsConcs
+]);
+
+cell_type([ name := "cell_B"
+	, strain := "str_one"
+	, qplasmids := { "qp_A", "qp_B" } 
+	, qplasmid_amounts := {0.5}
+	, qplasmids_as_conc := bAsConcs
+]);
+
+cell_type([ name := "cell_C"
+	, strain := "str_one"
+	, qplasmids := { "qp_A", "qp_B", "qp_C" } 
+	, qplasmid_amounts := { 150.0, 0.0 }
+	, qplasmid_vars := { 10.0 }
+	, qplasmids_as_conc := bAsConcs
+]);
+
+distribution([ name := "dist_qpA_D", type := "uniform", params := { 0.0, 10.0 } ]);
+distribution([ name := "dist_qpC_D", type := "normal", params := { 10.0, 2.0 } ]);
+
+cell_type([ name := "cell_D"
+	, strain := "str_one"
+	, qplasmids := { "qp_A", "qp_B", "qp_C", "qp_D" } 
+	, qplasmid_dists := {"dist_qpA_D", "", "dist_qpC_D" } 
+	, qplasmid_amounts := { 10.0, 20.0, 30.0 }
+	, qplasmid_vars := { 10.0 }
+	, qplasmids_as_conc := bAsConcs
+]);
+
+
+//---qplasmid copy num
+distribution([ name := "dist_qpA", type := "uniform", params := { 10.0, 20.0 } ]);
+
+qplasmid([ name := "qp_A", copy_num := 100.0 ]);
+qplasmid([ name := "qp_B", copy_num := { 100.0, 10.0 } ]);
+qplasmid([ name := "qp_C", copy_num_dist := [ type := "normal", params := { 50.0, 5.0 } ]  ]);
+qplasmid([ name := "qp_D", copy_num_dist := "dist_qpA" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ x := -200.0, y := -200.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := { "cell_B" }, amount := 100.0, coords := [ x := 200.0, y := -200.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_C", cell_types := { "cell_C" }, amount := 100.0, coords := [ x := -200.0, y := 200.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_D", cell_types := { "cell_D" }, amount := 100.0, coords := [ x := 200.0, y := 200.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "cell_A", target := "qp_A", rgb := _green, scale := 0.01 ]);
+cell_colour([ name := "ccol_red", gate := "cell_B", target := "qp_B", rgb := _red, scale := 0.01 ]);
+cell_colour([ name := "ccol_blue", gate := "cell_C", target := "qp_C", rgb := _blue, scale := 0.01 ]);
+cell_colour([ name := "ccol_grey", gate := "cell_D", target := "qp_D", rgb := _white, scale := 0.01 ]);
+
+//---
+//cells_plot([ name := "cplt_qpA", gate := "cell_A", fields := { "qp_A", "qp_B" }, stats := {"avg", "min", "max" } ]);
+//cells_plot([ name := "cplt_qpB", gate := "cell_B", fields := { "qp_A", "qp_B" }, stats := {"avg", "min", "max" } ]);
+
+/*cells_plot([ name := "cplt_qpC_all", gate := "cell_C", fields := { "qp_A", "qp_B", "qp_C" }, stats := {"avg"} ]);
+cells_plot([ name := "cplt_qpC_AB", gate := "cell_C", fields := { "qp_A", "qp_B" }, stats := {"avg", "min", "max" } ]);
+cells_plot([ name := "cplt_qpC_CD", gate := "cell_C", fields := { "qp_C", "qp_D" }, stats := {"avg", "min", "max" } ]);*/
+
+cells_plot([ name := "cplt_qpD_all", gate := "cell_D", fields := { "qp_A", "qp_B", "qp_C", "qp_D" }, stats := {"avg" } ]);
+cells_plot([ name := "cplt_qpD_AB", gate := "cell_D", fields := { "qp_A", "qp_B" }, stats := {"avg", "min", "max" } ]);
+cells_plot([ name := "cplt_qpD_CD", gate := "cell_D", fields := { "qp_C", "qp_D" }, stats := {"avg", "min", "max" } ]);

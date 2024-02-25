@@ -1,0 +1,63 @@
+/*To test the use of the vol_scaling option of pilus to automatically scale the conjugation rate by the cellular volume. If true, bigger cells are more likely to act as donors. 
+Used together with neighbours_w to make the rate independent of the number of neighbours so that bigger cells don't conjugate more just because they have more neighbours. */
+
+include gro3
+
+bigSize := 3.0;
+bVolScale := true;
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_big", growth_rate := 0.0, ini_vol := bigSize, division_vol := 4.0 ]);
+strain([ name := "str_small", growth_rate := 0.0, ini_vol := 1.0, division_vol := 4.0 ]);
+
+cell_type([ name := "cell_donorBig", strain := "str_big", plasmids := {"p_big"} ]);
+cell_type([ name := "cell_donorSmall", strain := "str_small", plasmids := {"p_small"} ]);
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth" ]);
+
+//---plasmids
+plasmid([ name := "p_big", oriTs := {"ot_A"} ]);
+plasmid([ name := "p_small", oriTs := {"ot_A"} ]);
+
+
+//---conjugation
+bgate([ name := "bga_donor", type := "OR", input := { "cell_donorBig", "cell_donorSmall" } ]);
+bgate([ name := "ga_notPlas", input := {"-p_big", "-p_small"} ]);
+
+pilus([ name := "pil_A"
+	, donor_gate := "bga_donor"
+	, recipient_gate := "ga_notPlas"
+	, max_rate := 0.1
+	, vol_scaling := bVolScale
+	, neighbours_w := 100.0
+]);
+
+oriT([ name := "ot_A", pilus := "pil_A" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_big", cell_types := {"cell_donorBig"}, amount := 200.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+cell_placer([ name := "cp_small", cell_types := {"cell_donorSmall"}, amount := 200.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 500.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "p_big", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "p_small", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "cell_recipient", rgb := _blue ]);
+
+//---
+bgate([ name := "ga_gotBig", input := { "p_big", "cell_recipient" } ]);
+bgate([ name := "ga_gotSmall", input := { "p_small", "cell_recipient" } ]);
+bgate([ name := "ga_gotAny", type := "OR", input := { "ga_gotBig", "ga_gotSmall" } ]);
+
+pop_stat([ name := "stat_big", gate := "ga_gotAny", input := "p_big", stats := {"avg"} ]);
+pop_stat([ name := "stat_small", gate := "ga_gotAny", input := "p_small", stats := {"avg"} ]);
+plot([ name := "plot_avg", pop_fields := { "stat_big", "stat_small" }, stats := "avg" ]);
+
+pop_function([ name := "pfun_ratio", type := "product", input := { "stat_big", "stat_small" }, params := {1.0, -1.0} ]);
+plot([ name := "plot_ratio", pop_fields := {"pfun_ratio"} ]);

@@ -1,0 +1,52 @@
+/* To test the link between flux and gene expresison so that a flux is conditional in the presence of a protein. 
+The flux must be inactive until the protein is produced. */
+
+include gro3
+
+molSynth := 49.5; 
+molDeg := 5.5; 
+
+thresholdVal := 1.0;
+
+
+global_params([ seed := 133087, show_plots := true  ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := { 0.0, 0.0 }, ini_vol := 2.5 ]);
+cell_type([ name := "cell_A", strain := "str_A", plasmids := { "bp_AB" } ]);
+
+//---gene expression
+molecule([ name := "mol_A", times := { -molDeg, molSynth } ]);
+molecule([ name := "mol_B", times := { -molDeg, molSynth } ]);
+
+operon([ name := "op_AB", output := { "mol_A" } ]);
+bplasmid([ name := "bp_AB", operons := {"op_AB"} ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.1, colour := _magenta, colour_sat := 10.0 ]);
+
+bgate([ name := "bga_molA", input := {"mol_A"} ]);
+flux([ name := "flux_Aout"
+	, gate := "bga_molA"
+	, metabolite := "s_A"
+	, amount := 10000.0
+	//, threshold := thresholdVal
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "bga_molA", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "mol_B", rgb := _blue ]);
+
+//---
+plot([ name := "plot_mols", fields := { "mol_A", "mol_B" }, stats := "avg" ]);
+plot([ name := "plot_signal", fields := { "_conc_s_A" }, stats := "avg" ]);
+plot([ name := "plot_all", fields := { "_conc_s_A", "mol_A", "mol_B" }, stats := "avg" ]);

@@ -1,0 +1,59 @@
+/*To test the combination of conjugation and gene expression, using molecules as donor_gate. 
+The three proteins oscillate following the Repressilator biocircuit and the donor is only active while "prot_A" (green) is present so that the conjugation events follow the oscillation */
+
+include gro3
+//params
+t_act := 50.0;
+t_act_var := 5.0;
+t_deg := 50.0;
+t_deg_var := 5.0;
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor", strain := "_str_nogrowth", plasmids := {"bp_conjABC"}, molecules := {"prot_A"} ]);
+cell_type([ name := "cell_recipient", strain := "_str_slow" ]);
+
+//---plasmdids
+bplasmid([ name := "bp_conjABC", operons := {"op_A", "op_B", "op_C"}, oriTs := {"ot_A"} ]);
+
+
+//---gene expression
+protein ([ name := "prot_A", times := {-t_deg, t_act}, times_var := { t_deg_var, t_act_var} ]);
+protein ([ name := "prot_B", times := {-t_deg, t_act}, times_var := { t_deg_var, t_act_var} ]);
+protein ([ name := "prot_C", times := {-t_deg, t_act}, times_var := { t_deg_var, t_act_var} ]);
+
+bgate([ name := "ga_notA", input := {"-prot_A"} ]);
+bgate([ name := "ga_notB", input := {"-prot_B"} ]);
+bgate([ name := "ga_notC", input := {"-prot_C"} ]);
+
+operon([ name := "op_A", gate := "ga_notC", output := {"prot_A"} ]);
+operon([ name := "op_B", gate := "ga_notA", output := {"prot_B"} ]);
+operon([ name := "op_C", gate := "ga_notB", output := {"prot_C"} ]);
+
+
+//---conjugation
+bgate([ name := "ga_notPlas", input := {"-bp_conjABC"} ]);
+pilus([ name := "pil_A", donor_gate := "prot_A", recipient_gate := "ga_notPlas", max_rate := { 0.1, 0.0 } ]);
+
+oriT([ name := "ot_A", pilus := "pil_A", donor_event := "ot_A_evdonor" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor", cell_types := {"cell_donor"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "prot_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "prot_B", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "prot_C", rgb := _blue ]);
+cell_colour([ name := "ccol_grey", gate := "bp_conjABC", rgb := _white, intensity := 0.3 ]);
+
+//---
+plot([ name := "plot_protA", gate := "bp_conjABC", fields := {"prot_A"}, stats := "avg" ]);
+plot([ name := "plot_ev", fields := {"ot_A_evdonor"}, stats := {"sum"} ]);
+plot([ name := "plot_evCount", fields := {"ot_A_evdonor"}, stats := {"acc"} ]);

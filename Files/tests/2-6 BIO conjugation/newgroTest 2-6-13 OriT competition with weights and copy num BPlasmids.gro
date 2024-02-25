@@ -1,0 +1,70 @@
+/*To test the effect of copy number in the orit selection when different orits share the same pilus. 
+Whit b`plasmids in this case, the different copy numbers are achieved in two ways:
+ - Multiple different plasmids share the same orit (group B)
+ - A plasmid has multiple copies of the orit (group C)
+ 
+When bCopyDependent true, "p_C" is transmtitted at 5x prob, and a plasmid with "ot_B" at 3x prob compared to "p_A". When false, all are transmitted with the same prob. Changing the multiplicity of the orits or changing ratewB and ratewC shifts it.
+
+In this case, the orits compete, not the bplasmdids.
+*/
+
+include gro3
+
+ratewB := 1.0;
+ratewC := 1.0;
+bCopyDependent := true;
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donor"
+	, strain := "_str_nogrowth"
+	, plasmids := {"p_A", "p_B1", "p_B2", "p_B3", "p_C" }
+]);
+
+cell_type([ name := "cell_recipient", strain := "_str_nogrowth" ]);
+
+//---plasmids
+plasmid([ name := "p_A", oriTs := {"ot_A"} ]);
+plasmid([ name := "p_B1", oriTs := {"ot_B"} ]);
+plasmid([ name := "p_B2", oriTs := {"ot_B"} ]);
+plasmid([ name := "p_B3", oriTs := {"ot_B"} ]);
+plasmid([ name := "p_C", oriTs := {"ot_C", "ot_C", "ot_C", "ot_C", "ot_C"} ]);
+
+
+//---conjugation
+bgate([ name := "ga_notConj", input := { "-ot_A", "-ot_B", "-ot_C" } ]);
+pilus([ name := "pil_A", donor_gate := "cell_donor", recipient_gate := "ga_notConj", max_rate := 0.1 ]);
+
+oriT([ name := "ot_A", pilus := "pil_A", rate_w := 1.0, copy_dependent := bCopyDependent ]);
+oriT([ name := "ot_B", pilus := "pil_A", rate_w := ratewB, copy_dependent := bCopyDependent ]);
+oriT([ name := "ot_C", pilus := "pil_A", rate_w := ratewC, copy_dependent := bCopyDependent ]);
+
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donor", cell_types := {"cell_donor"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 1000.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "ot_A", rgb := _green ]);
+cell_colour([ name := "ccol_bred", gate := "ot_B", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "ot_C", rgb := _blue ]);
+
+//---
+bgate([ name := "ga_pConj", type := "OR", input := { "ot_A", "ot_B", "ot_C" } ]);
+bgate([ name := "ga_gotAny", input := { "cell_recipient", "ga_pConj" } ]);
+plot([ name := "plot_avg", gate := "ga_gotAny", fields := { "p_A", "ot_B", "p_C" }, stats := "avg" ]);
+
+pop_stat([ name := "stat_A", gate := "ga_gotAny", input := "p_A", stats := {"sum"} ]);
+pop_stat([ name := "stat_B", gate := "ga_gotAny", input := "ot_B", stats := {"sum"} ]);
+pop_function([ name := "pfun_ratioB", type := "product", input := { "stat_A", "stat_B" }, params := {-1.0, 1.0} ]);
+
+pop_stat([ name := "stat_C", gate := "ga_gotAny", input := "p_C", stats := {"sum"} ]);
+pop_function([ name := "pfun_ratioC", type := "product", input := {"stat_A", "stat_C"}, params := {-1.0, 1.0} ]);
+
+plot([ name := "plot_ratios", gate := "_ga_true", pop_fields := {"pfun_ratioB", "pfun_ratioC"} ]);

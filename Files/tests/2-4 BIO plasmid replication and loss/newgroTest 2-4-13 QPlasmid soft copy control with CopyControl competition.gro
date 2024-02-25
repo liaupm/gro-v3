@@ -1,0 +1,76 @@
+/*To test the competition between plasmids sharing elements of the built-in soft copy number control system, using copy_control. Also, to test the effect in trans of the copy_control (those in one plasmid can affect other plasmids).
+The pair of plasmids A shre both the oriv and the copy_control while the pair B only share the copy_control but have different orivs.
+The reached copy number depends on the replication parameters but, as the rate is never a perfect zero, this depends on the growth rate too. 
+
+To test:
+ - Change the replication params of the oriv (vmax and w). When the params of B1 and B2 orivs are identical, the B plasmids behave like the A plasmids
+ - Change the number of copies of copy_control so that one of the plasmids in the pair contributes 2 or 0 instead of 1 and check the effect in the other plasmid of the pair.
+ - Changing the number of copies of copy_control at oriv level has the effect of multiplying the control over that specific oriv only
+ - Change the growth rate to assess its effect
+*/
+
+include gro3
+
+//---params
+iniAmount := 10.0;
+
+orivGate := "_ga_true";
+//orivGate := "_ga_false";
+
+ccGate := "_ga_true";
+//ccGate := "_ga_false";
+
+vmaxParam := 500.0;
+wParam := 0.0001;
+
+
+global_params([ seed := 166457, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A",  growth_rate := { 0.01, 0.0 } ]);	
+cell_type([ name := "cell_AB"
+	, strain := "str_A"
+	, qplasmids := { "qp_A1", "qp_A2", "qp_B1", "qp_B2" } 
+	, qplasmid_amounts := { iniAmount, iniAmount, iniAmount, iniAmount }
+	//, qplasmids_as_conc := false
+]);
+
+
+//---replication
+copy_control([ name := "cc_A", gate := ccGate, w := 0.01 ]);
+oriv([ name := "ov_A", gate := orivGate, copy_controls := {"cc_A"}, vmax := vmaxParam, w := wParam ]);
+
+copy_control([ name := "cc_B", gate := ccGate, w := 0.01 ]);
+oriv([ name := "ov_B1", gate := orivGate, copy_controls := {"cc_B"}, vmax := vmaxParam, w := wParam ]);
+oriv([ name := "ov_B2", gate := orivGate, copy_controls := {"cc_B"}, vmax := vmaxParam, w := wParam ]);
+
+partition([ name := "par_A", gate := "_ga_true", fraction := 0.5, p := 0.5, vol_scaling := true ]);
+partition([ name := "par_B", gate := "_ga_true", fraction := 0.5, p := 0.5, vol_scaling := true ]);
+
+//---
+qplasmid([ name := "qp_A1", oriVs := {"ov_A"}, copy_controls := {}, partition := "par_A" ]);
+qplasmid([ name := "qp_A2", oriVs := {"ov_A"}, copy_controls := {"cc_A"}, partition := "par_A" ]);
+
+qplasmid([ name := "qp_B1", oriVs := {"ov_B1"}, copy_controls := {"cc_B"}, partition := "par_B" ]);
+qplasmid([ name := "qp_B2", oriVs := {"ov_B2"}, copy_controls := {"cc_B", "cc_B"}, partition := "par_B" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_AB", cell_types := { "cell_AB" }, amount := 100.0, coords := [ x := -0.0, y := 0.0, r := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_qpAlog", input := {"qp_A1"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_red", gate := "qp_A1", rgb := _red, target := "fun_qpAlog", scale := 0.1 ]);
+
+function([ name := "fun_qpBlog", input := {"qp_B1"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_blue", gate := "qp_B1", rgb := _blue, target := "fun_qpBlog", scale := 0.1 ]);
+
+//---
+cells_plot([ name := "cplt_A1", fields := { "qp_A1" }, stats := { "avg", "min", "max" } ]);
+cells_plot([ name := "cplt_B1", fields := { "qp_B1" }, stats := { "avg", "min", "max" } ]);
+
+cells_plot([ name := "cplt_all", fields := { "qp_A1", "qp_A2", "qp_B1", "qp_B2" } ]);

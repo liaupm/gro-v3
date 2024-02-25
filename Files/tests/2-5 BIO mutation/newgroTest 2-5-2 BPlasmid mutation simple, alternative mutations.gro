@@ -1,0 +1,89 @@
+/*To test the basic mutation funtionality with bplasmids. plasmids and amounts fields on mutation; gate, rate, rate_fun, mutations and mutations_probs fields of mutation_process
+To test mutations that both add and remove bplasmids and null mutations.
+To test:
+ - Try different mutProbs and check that the resulting ratios match 
+ - Check that null mutations have no effect
+ - Change selectedGate and check that only the gate rules whether the mutation takes place and not the presence of the removed plasmids ("bp_A"). If not present, that specific plasmid is just ignored when applying the mutation.
+ - Try different mutRate. Uncomment rate_fun and check that the two ways are equivalent when using a const function. Check that using "fun_bpA" is equivalent to use "bp_A" as the condition. 
+ - Uncomment the placers for other cell types to check that mutations only occur when their gate holds.
+ - Check that the count of plasmid contents (operon and regulation) change properly with them
+*/
+
+include gro3
+
+selectedGate := "bp_A";
+//selectedGate := "_ga_true";
+//selectedGate := "_ga_false";
+mutRate := 0.01;
+mutProbs := { 1.0, 2.0, 0.0, 0.0, 0.0, 0.0 };
+
+global_params([ seed := 123443, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := {  0.01, 0.0 } ]);
+	
+cell_type([ name := "cell_A", strain := "str_A", bplasmids := {"bp_A"} ]);
+cell_type([ name := "cell_B", strain := "str_A", bplasmids := {"bp_B"} ]);
+cell_type([ name := "cell_0", strain := "str_A", bplasmids := {} ]);
+
+
+//---plasmids
+exact_regulation([ name := "ereg_A" ]);
+operon([ name := "op_A", regulation := "ereg_A" ]);
+bplasmid([ name := "bp_A", operons := {"op_A"} ]);
+
+exact_regulation([ name := "ereg_B" ]);
+operon([ name := "op_B", regulation := "ereg_B" ]);
+bplasmid([ name := "bp_B", operons := {"op_B", "op_B"} ]);
+
+bplasmid([ name := "bp_C" ]);
+
+
+//---mutations
+mutation([ name := "mut_AB", plasmids := { "bp_A", "bp_B" }, amounts := { -1, 1 } ]);
+mutation([ name := "mut_AC", plasmids := { "bp_A", "bp_C" }, amounts := { -1, 1 } ]);
+mutation([ name := "mut_noA", plasmids := { "bp_A" }, amounts := { -1 } ]);
+//null mutations
+mutation([ name := "mut_AA", plasmids := { "bp_A", "bp_A" }, amounts := { -1, 1 } ]);
+mutation([ name := "mut_0", plasmids := { "bp_A" }, amounts := { 0 } ]);
+mutation([ name := "mut_00", plasmids := {}, amounts := {} ]);
+
+//---
+function([ name := "fun_const", type := "const", params := { mutRate } ]);
+function([ name := "fun_bpA", type := "sum", input := {"bp_A"}, params := { mutRate } ]);
+
+mutation_process([ name := "mutp_ABC"
+	, gate := selectedGate
+	//, rate_fun := "fun_const"
+	//, rate_fun := "fun_bpA"
+	, rate := mutRate
+	, mutations := { "mut_AB", "mut_AC", "mut_noA", "mut_AA", "mut_0", "mut_00" }
+	, mutation_probs := mutProbs 
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+//cell_placer([ name := "cp_B", cell_types := { "cell_B" }, amount := 10.0, coords := [ x := -200.0, y := -200.0 ] ]);
+//cell_placer([ name := "cp_0", cell_types := { "cell_0" }, amount := 10.0, coords := [ x := 200.0, y := 200.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_red", gate := "bp_A", rgb := _red ]);
+cell_colour([ name := "ccol_green", gate := "bp_B", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "bp_C", rgb := _blue ]);
+
+//---
+plot([ name := "plot_plas", fields := { "bp_A", "bp_B", "bp_C" }, gate := "cell_A", stats := "avg" ]);
+
+bgate([ name := "bga_mutated", input := {"cell_A", "-bp_A"} ]);
+pop_stat([ name := "stat_gotB", gate := "bga_mutated", input := "bp_B", stats := "avg" ]);
+pop_stat([ name := "stat_gotC", gate := "bga_mutated", input := "bp_C", stats := "avg" ]);
+pop_function([ name := "pfun_ratioBtoC", type := "product", input := {"stat_gotB", "stat_gotC" }, params := { 1.0, -1.0 }  ]);
+plot([ name := "plot_ratioBtoC", pop_fields := {"pfun_ratioBtoC" } ]);
+
+plot([ name := "plot_contentA", fields := { "bp_A", "op_A", "ereg_A" }, gate := "cell_A", stats := "avg" ]);
+plot([ name := "plot_contentB", fields := { "bp_B", "op_B", "ereg_B" }, gate := "cell_A", stats := "avg" ]);

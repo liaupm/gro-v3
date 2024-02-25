@@ -1,0 +1,93 @@
+/* To test the custom dosage effect of exact_regulation via the dosafe_fun and auto_division fields. 
+Also to test multiple times and thresholds from molecule and the regulation field of operon.
+Depending on the operons they carry, each cell type takes a different delay to produce the molecule.
+
+To test:
+ - Use different thresholds
+ - Use different parameters and/or function types for the dosage functions
+ - Try different raw activations (actiOnB) 
+ - Try auto_division false and true
+ - Check that the dosage parameter of operon isautomatically set to true when a regulation with dosage_fun is assigned
+ - Notice that the function acts as a scaler that multiplies the raw activation
+*/
+
+include gro3
+
+//params
+t_act_1 := 100.0;
+t_act_2 := 75.0;
+t_act_3 := 50.0;
+t_act_var := 0.0;
+t_deg := 10.0;
+t_deg_var := 0.0;
+
+threshold1 := 0.86;
+threshold2 := 1.6;
+threshold3 := 1.8;
+
+actiOnB := 1.0;
+
+global_params([ seed := 66456463 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A1", plasmids := {"p_A1"} ]); //( 1.1 - 0.1 * 1 ) * 1 = 1.0
+cell_type([ name := "cell_AA", plasmids := {"p_AA"} ]); //( 1.1 - 0.1 * 2 ) * 2 = 1.8
+cell_type([ name := "cell_B1", plasmids := {"p_B1"} ]); //1 * exp(-1) ~ 0.6321
+cell_type([ name := "cell_BB", plasmids := {"p_BB"} ]); // 1 * exp(-2) ~ 0.8647
+cell_type([ name := "cell_AB", plasmids := {"p_AB"} ]); // ~1.0 + 0.6321 = 1.6321
+
+
+//---gene expression
+molecule([ name := "mol_A"
+	, times := { -t_deg, t_act_1, t_act_2, t_act_3 }
+	, times_var := { t_deg_var, t_act_var, t_act_var, t_act_var }
+	, thresholds := { threshold1, threshold2, threshold3 } 
+]);
+
+function([ name := "fun_dosageA", input := { "reg_A" }, type := "sum", params := { -0.1, 1.1 } ]);
+
+regulation([ name := "reg_A", dosage_fun := "fun_dosageA", auto_division := false ]);
+operon([ name := "op_A1", regulation := "reg_A", output := {"mol_A"} ]);
+operon([ name := "op_A2", regulation := "reg_A", output := {"mol_A"} ]);
+
+
+function([ name := "fun_dosageB"
+	, input := { "reg_B" }
+	, type := "sat_exp"
+	//, params := { 1.0, 1.0 }
+	//, auto_vol := "division"
+]);
+
+regulation([ name := "reg_B", dosage_fun := "fun_dosageB", acti_on := actiOnB, auto_division := true ]);
+operon([ name := "op_B1", regulation := "reg_B", output := {"mol_A"} ]);
+operon([ name := "op_B2", regulation := "reg_B", output := {"mol_A"} ]);
+
+//---
+bplasmid([ name := "p_A1", operons := { "op_A1" } ]);
+bplasmid([ name := "p_AA", operons := { "op_A1", "op_A2" } ]);
+bplasmid([ name := "p_B1", operons := { "op_B1" } ]);
+bplasmid([ name := "p_BB", operons := { "op_B1", "op_B2" } ]);
+bplasmid([ name := "p_AB", operons := { "op_A1", "op_B1" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_AB", cell_types := {"cell_AB"}, amount := 1.0, coords := [ x := 0.0, y := 0.0 ] ]);
+cell_placer([ name := "cp_A1", cell_types := {"cell_A1"}, amount := 1.0, coords := [ x := -300.0, y := -300.0 ] ]);
+cell_placer([ name := "cp_AA", cell_types := {"cell_AA"}, amount := 1.0, coords := [ x := -300.0, y := 300.0 ] ]);
+cell_placer([ name := "cp_B1", cell_types := {"cell_B1"}, amount := 1.0, coords := [ x := 300.0, y := -300.0 ] ]);
+cell_placer([ name := "cp_BB", cell_types := {"cell_BB"}, amount := 1.0, coords := [ x := 300.0, y := 300.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+bgate([ name := "ga_A", type := "OR", input := {"op_A1", "op_A2"} ]);
+bgate([ name := "ga_B", type := "OR", input := {"op_B1", "op_B2"} ]);
+
+bgate([ name := "ga_onA", input := {"ga_A", "mol_A"} ]);
+bgate([ name := "ga_onB", input := {"ga_B", "mol_A"} ]);
+
+//cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);
+cell_colour([ name := "ccol_A", gate := "ga_onA", rgb := _green ]);
+cell_colour([ name := "ccol_B", gate := "ga_onB", rgb := _blue ]);

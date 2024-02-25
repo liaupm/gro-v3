@@ -1,0 +1,83 @@
+/* To test the link between flux and gene expresison and a threshold. Fields: output, activation, threshold, sgate
+The cells act as a sensor of signal (QS receptor). When it is present, the molecule is produced.
+The production of the two molecules is equivalent, A uses a flux element and B links the medium condition directly to a operon. Both colours (green and blue) must appear at the same time.
+
+To test:
+ - Try different activations and check that the molecule is not produced unless it is higher than the molecule's threshold
+ - Try different medium signal thresholds, as the threshold param, as a direct sgate or as a sgate with an intermediate function
+ - Try different expression times as a delay
+ - Use either the cell_type without "bp_A" with fluxActi higher than molThreshold to test the flux alone or the one with "bp_A" to test how the two contributions are added up to reach a higher molThreshold 
+ - Try with and without growth
+*/
+
+include gro3
+
+molSynth := 5.5; 
+molDeg := 5.5; 
+molThreshold := 1.5; //0.5
+
+thresholdVal := 1.0;
+fluxActi := 1.0;
+
+
+global_params([ seed := 133087, show_plots := true  ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := { 0.01, 0.0 }, ini_vol := 2.5 ]);
+cell_type([ name := "cell_A", strain := "str_A", plasmids := { "bp_A", "bp_B" } ]);
+//cell_type([ name := "cell_A", strain := "str_A", plasmids := { "bp_B" } ]);
+
+//---gene expression
+molecule([ name := "mol_A", times := { -molDeg, molSynth }, thresholds := { molThreshold } ]);
+molecule([ name := "mol_B", times := { -molDeg, molSynth } ]);
+
+operon([ name := "op_A", output := {"mol_A"} ]);
+bplasmid([ name := "bp_A", operons := {"op_A"} ]);
+
+operon([ name := "op_B", gate := "qga_A", output := {"mol_B"} ]);
+bplasmid([ name := "bp_B", operons := {"op_B"} ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.1, colour := _magenta, colour_sat := 10.0 ]);
+
+//qgate([ name := "qga_A", input := "_conc_s_A", value := thresholdVal ]);
+function([ name := "fun_A", input := {"_conc_s_A"} ]);
+qgate([ name := "qga_A", input := "fun_A", value := thresholdVal ]);
+
+flux([ name := "flux_Ain"
+	, sgate := "qga_A"
+	, metabolite := "s_A"
+	, output := { "mol_A" }
+	, amount := 0.0
+	//, threshold := thresholdVal
+	, activation := fluxActi
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+//---
+timer([ name := "t_A", period := 20.0 ]);
+
+signal_placer([ name := "sp_A"
+	, timer := "t_A"
+	, signals := {"s_A"}
+	, amount := 30000.0
+	, sources := 1.0
+	, coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);
+cell_colour([ name := "ccol_blue", gate := "mol_B", rgb := _blue ]);
+
+//---
+plot([ name := "plot_mols", fields := { "mol_A", "mol_B" }, stats := "avg" ]);
+plot([ name := "plot_signal", fields := { "_conc_s_A" }, stats := "avg" ]);
+plot([ name := "plot_all", fields := { "_conc_s_A", "mol_A", "mol_B" }, stats := "avg" ]);

@@ -1,0 +1,72 @@
+/*To test the chaining of different fluxes in different cell types, connected to gene expression and to the growth rate. A cells start to grow and produce signal A. Cells B respond to signal A growing too, to enclose the A cells, and producing signal B. Signal B prevent the growth and production of signal A by A cells. The activity of both cell_types is oscillating. The response of B cells set the A cells off but after a while signal B gets diluted and the cycle starts again. 
+*/
+
+include gro3
+
+global_params([ seed := 133087 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := 0.0 ]);
+
+cell_type([ name := "cell_A", strain := "str_A", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_B", strain := "str_A" ]);
+
+
+//---gene expression
+molecule([ name := "mol_A", times := { -20.0, 10.0 } , times_var := { 0.2, 0.1 } ]);
+molecule([ name := "mol_B", times := { -20.0, 10.0 } , times_var := { 0.2, 0.1 } ]);
+
+//---
+operon([ name := "op_A", output := {"mol_A"} ]);
+plasmid([ name := "p_A", operons := {"op_A"} ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.05, colour := _magenta, colour_sat := 1.0 ]);
+signal([ name := "s_B", kdiff := 0.2, kdeg := 0.05, colour := _cyan, colour_sat := 1.0 ]);
+
+//cell A
+flux([ name := "flux_Aout", metabolite := "s_A", gate := "mol_A", amount := 1.0 ]);
+flux([ name := "flux_growthA", metabolite := "_biomass", gate := "mol_A", amount := 0.01 ]);
+
+flux([ name := "flux_Bin"
+	, metabolite := "s_B"
+	, gate := "cell_A"
+	//, gate := "mol_A"
+	, output := {"mol_A"}
+	, amount := 0.0
+	, threshold := { 0.001, 0.0001 }
+	, activation := -2.0
+	
+]);
+
+//cell B
+flux([ name := "flux_Ain"
+	, metabolite := "s_A"
+	, gate := "cell_B"
+	, output := {"mol_B"}
+	, threshold := { 0.1, 0.01 }
+]);
+
+flux([ name := "flux_Bout", metabolite := "s_B", gate := "mol_B", amount := { 1.0, 0.1 }, direction := 1 ]);
+flux([ name := "flux_growthB", metabolite := "_biomass", gate := "mol_B", amount := { 0.01, 0.001 }, direction := 1 ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 100.0, coords := [ x := 200.0, y := 0.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_B2", cell_types := {"cell_B"}, amount := 100.0, coords := [ x := -200.0, y := 0.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_B3", cell_types := {"cell_B"}, amount := 100.0, coords := [ x := 0.0, y := -200.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_B4", cell_types := {"cell_B"}, amount := 100.0, coords := [ x := 0.0, y := 200.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_dark_green", gate := "cell_A", rgb := _green, intensity := 0.3 ]);
+cell_colour([ name := "ccol_green", gate := "mol_A", rgb := _green ]);
+
+cell_colour([ name := "ccol_dark_red", gate := "cell_B", rgb := _red, intensity := 0.3 ]);
+cell_colour([ name := "ccol_red", gate := "mol_B", rgb := _red ]);
