@@ -1,0 +1,23 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>icons/open.png</file>
+        <file>icons/reload.png</file>
+		<file>icons/reloadSeed.png</file>
+        <file>icons/start.png</file>
+        <file>icons/step.png</file>
+        <file>icons/stop.png</file>
+        <file>icons/zoom_in.png</file>
+        <file>icons/zoom_out.png</file>
+		<file>icons/center.png</file>
+        <file>icons/zoom_auto.png</file>
+		<file>icons/x1.png</file>
+        <file>icons/x10.png</file>
+        <file>icons/x100.png</file>
+		<file>icons/plots.png</file>
+		<file>icons/beep.mp3</file>
+    </qresource>
+    <qresource prefix="/images">
+        <file>images/error.tiff</file>
+        <file>images/error.png</file>
+    </qresource>
+</RCC>
