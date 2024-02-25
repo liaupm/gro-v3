@@ -1,0 +1,66 @@
+/* To test the use of distributions other than the normal by randomness
+To test the type and params fields. Additionally, can be used to test inheritance and inertia params too
+To test:
+ - Use different parameters both at randomness and intensity of colour and check that the resulting values are correction
+ - Test how the use of inertia and inheritance modify the distributions (only the normal distribution is unaltered)
+*/
+
+include gro3
+
+iniCellNum := 1.0;
+intensityLbound := -0.4;
+intensityUbound := 0.6;
+intensityLambda := 2.0;
+
+global_params([ seed := 75664, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A" ]);
+cell_type([ name := "cell_B" ]);
+
+
+//---randomness and colour
+randomness([ name := "rnd_uniA"
+	, dist_type := "uniform"
+	, params := { 0.0, 1.0 }
+	, inheritance := 0.0
+	, inertia := 1.0
+	, sampling_time := 20.0
+]);
+
+randomness([ name := "rnd_expB"
+	, dist_type := "exponential"
+	, params := { 1.0 }
+	, inheritance := 0.0
+	, inertia := 1.0
+	, sampling_time := 20.0
+]);
+
+cell_colour([ name := "ccol_green_A"
+	, gate := "cell_A"
+	, rgb := _green
+	, intensity_rnd := "rnd_uniA"
+	, intensity := { intensityLbound, intensityUbound }
+]);
+
+cell_colour([ name := "ccol_cyan_B"
+	, gate := "cell_B"
+	, rgb := _cyan
+	, intensity_rnd := "rnd_expB"
+	, intensity := { intensityLambda }
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := iniCellNum, coords := [ x := -500.0, y := 300.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := iniCellNum, coords := [ x := 0.0, y := -300.0, r := 10.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+plot([ name := "plot_A_uniA", fields := {"rnd_uniA"}, gate := "cell_A", stats := {"min", "max", "avg"} ]);
+plot([ name := "plot_A_greenA", fields := {"ccol_green_A"}, gate := "cell_A", stats := {"min", "max", "avg"} ]);
+plot([ name := "plot_B_expB", fields := {"rnd_expB"}, gate := "cell_B", stats := {"min", "max", "avg"} ]);
+plot([ name := "plot_B_cyanB", fields := {"ccol_cyan_B"}, gate := "cell_B", stats := {"min", "max", "avg"} ]);

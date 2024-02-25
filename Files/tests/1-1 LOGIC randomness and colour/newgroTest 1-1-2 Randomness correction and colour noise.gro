@@ -1,0 +1,71 @@
+/* To test the normal correction of randomness to maintain the stddev constant and equal to the user-defined one
+cell_colour is used as a visual qualitative reporter while plots are used for quantitative data.
+It is also useful to test the inertia, inheritance and sampling_time 
+ - When correction = true, the stddev of the randomness with ineritance is const and matches the stddev (intensitiVar in this case) and that of the randomness without ineritance
+ - When correction = false, the stddev is smaller and decreases with time
+ 
+ To test:
+  - Check that that is true for different values of ineritance and inertia and intensityVar
+  - Try the "str_same" strain for synchronous division to test the effect of decoupled divisions in stddev
+*/
+
+include gro3
+
+iniCellNum := 1.0;
+intensityMean := 0.5;
+intensityVar := 0.2;
+
+global_params([ seed := 75664, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_same"
+	, growth_rate := { 0.035265, 0.0 }
+	, ini_vol := { 2.355, 0.0 }
+	, division_vol := { 3.14, 0.0 }
+	, division_fraction := {0.5, 0.0}
+]);
+
+cell_type([ name := "cell_A", strain := "_str_wt" ]);
+cell_type([ name := "cell_B", strain := "_str_wt" ]);
+
+
+//---randomness and colour
+randomness([ name := "rnd_A"
+	, inheritance := 0.0
+	, inertia := 1.0
+	, sampling_time := 20.0
+]);
+
+randomness([ name := "rnd_B"
+	, inheritance := 0.9
+	, inertia := 1.0
+	, sampling_time := 20.0
+	//, correction := false
+]);
+
+cell_colour([ name := "ccol_green_A"
+	, gate := "cell_A"
+	, rgb := _green
+	, intensity_rnd := "rnd_A"
+	, intensity := { intensityMean, intensityVar }
+]);
+
+cell_colour([ name := "ccol_cyan_B"
+	, gate := "cell_B"
+	, rgb := _cyan
+	, intensity_rnd := "rnd_B"
+	, intensity := { intensityMean, intensityVar }
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := iniCellNum, coords := [ x := -500.0, y := 300.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := iniCellNum, coords := [ x := 0.0, y := -300.0, r := 10.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+plot([ name := "plot_A", fields := {"rnd_A"}, gate := "cell_A", stats := {"avg", "stddev"} ]);
+plot([ name := "plot_B", fields := {"rnd_B"}, gate := "cell_B", stats := {"avg", "stddev"} ]);

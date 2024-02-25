@@ -1,0 +1,50 @@
+/* To test the target and scale fields of cell_colour. The cells report the concentration of signal with the intensity of colour.
+In delta mode, the cell colour has some delay.
+To test:
+ - Try different scales
+ - Try absolute and delta modes with different params
+ - When using custom intensity params, they are added to the target value as noise
+*/
+
+include gro3
+
+deltaVal := 0.1;
+
+global_params([ seed := 123242 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//----cells
+cell_type([ name := "cell_A", strain := "_str_nogrowth" ]);
+
+//---signals
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.1, colour := _magenta, colour_sat := 10.0 ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+//---
+timer([ name := "t_A", start := 50.0, stop := 1000.0, period := 10.0 ]);
+
+signal_placer([ name := "sp_A"
+	, signals := {"s_A"}
+	, signal_probs := {1.0}
+	, mode := "add"
+	, amount := 3000.0
+	, sources := 10.0
+	, coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+	, timer := "t_A"
+]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green"
+	, rgb := _green
+	, mode := "delta"
+	, intensity := { 0.5, 0.0 }
+	, delta := deltaVal
+	, target := "_conc_s_A"
+	, scale := 0.1
+]);

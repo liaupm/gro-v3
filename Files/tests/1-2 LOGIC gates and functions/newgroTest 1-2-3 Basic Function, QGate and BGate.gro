@@ -1,0 +1,68 @@
+/*To test the basic use of function, qgate and bgate. 
+ - Function: very simple, with all the feilds as default, only as an input to the qgates to test the indirect acces to input elements through other elements. input field. Also some function-to-function chainning 
+ - QGate: input, value and operator field
+ - BGate: input and type fields
+ 
+Expected: 
+ - cell_A, 1 copies, true for lessThan3, green
+ - cell_C, 3 copies, true for moreThan1, red
+ - cel_B, 2 copies, true for all, including the bgate, white
+ 
+To test: change the values, operators and bgateType. Check that the evaluation is correct from t0
+*/
+
+include gro3
+
+//---params
+bgateType := "AND";
+
+global_params([ seed := 130094 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_AB", plasmids := { "p_A", "p_B" } ]);
+cell_type([ name := "cell_ABC", plasmids := { "p_A", "p_B", "p_C" } ]);
+
+
+//---elements
+operon([ name := "op_A" ]);
+plasmid([ name := "p_A", operons := {"op_A"} ]);
+plasmid([ name := "p_B", operons := {"op_A"} ]);
+plasmid([ name := "p_C", operons := {"op_A"} ]);
+
+
+//---logic
+qgate([ name := "qga_moreThan1_direct", input := "op_A", value := 1.0, operator := ">" ]);
+qgate([ name := "qga_lessThan3_direct", input := "op_A", value := 3.0, operator := "<" ]);
+qgate([ name := "qga_exact2_direct", input := "op_A", value := 2.0, operator := "==" ]);
+bgate([ name := "ga_chain_direct", type := bgateType, input := { "qga_moreThan1_direct", "qga_lessThan3_direct" } ]);
+
+//---
+function([ name := "fun_zOpA", input := {"op_A"} ]);
+function([ name := "fun_opA", input := {"fun_zOpA"} ]);
+
+qgate([ name := "qga_moreThan1_fun", input := "fun_opA", value := 1.0, operator := ">" ]);
+qgate([ name := "qga_lessThan3_fun", input := "fun_opA", value := 3.0, operator := "<" ]);
+qgate([ name := "qga_exact2_fun", input := "fun_opA", value := 2.0, operator := "==" ]);
+bgate([ name := "ga_chain_fun", type := bgateType, input := { "qga_moreThan1_fun", "qga_lessThan3_fun" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 10.0, coords := [ x := -200.0, y := 0.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_AB", cell_types := {"cell_AB"}, amount := 10.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 10.0, coords := [ x := 200.0, y := 0.0, r := 0.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+/*cell_colour([ name := "ccol_green", gate := "qga_moreThan1_direct", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "qga_lessThan3_direct", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate :=  "qga_exact2_direct", rgb := _blue ]);
+cell_colour([ name := "ccol_blue", gate :=  "ga_chain_direct", rgb := _blue ]); */
+
+//cell_colour([ name := "ccol_blue", gate :=  "qga_exact2_fun", rgb := _blue ]);
+cell_colour([ name := "ccol_blue", gate :=  "ga_chain_fun", rgb := _blue ]);
+cell_colour([ name := "ccol_green", gate := "qga_moreThan1_fun", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "qga_lessThan3_fun", rgb := _red ]);

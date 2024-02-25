@@ -1,0 +1,77 @@
+/*To test the min, max, round and auto_vol fields of function. 
+When two chained functions use auto_vol in opposite directions, the result is unchanged (unless the bounds make it different). There may be a little difference due to rounding error, which can be checked using the "range" plots and get rid of either applying an epsilon or using the round field.
+
+Expected without min, max and auto_vol: 
+ - cell_A, 1 copies, true for lessThan3, green
+ - cell_C, 3 copies, true for moreThan1, red
+ - cel_B, 2 copies, true for all, including the bgate, white
+ 
+The use of the fields alters that default behaviour.
+To test: change the values. Check that the evaluation is correct from t0.
+*/
+
+include gro3
+
+epsilon := 0.001;
+
+//---params
+global_params([ seed := 130094, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_0", plasmids := {} ]);
+cell_type([ name := "cell_A", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_AB", plasmids := { "p_A", "p_B" } ]);
+cell_type([ name := "cell_ABC", plasmids := { "p_A", "p_B", "p_C" } ]);
+
+
+//---elements
+operon([ name := "op_A" ]);
+plasmid([ name := "p_A", operons := {"op_A"} ]);
+plasmid([ name := "p_B", operons := {"op_A"} ]);
+plasmid([ name := "p_C", operons := {"op_A"} ]);
+
+
+//---logic
+function([ name := "fun_zOpA", input := {"op_A"}, /*auto_vol := "division",*/ min := 2.0 ]);
+function([ name := "fun_opA", input := {"fun_zOpA"}, /*auto_vol := "product",*/ round := 0, max := 2.1 ]);
+
+qgate([ name := "qga_moreThan1_fun", input := "fun_opA", value := 1.0 + epsilon, operator := ">" ]);
+qgate([ name := "qga_lessThan3_fun", input := "fun_opA", value := 3.0 - epsilon, operator := "<" ]);
+qgate([ name := "qga_exact2_fun", input := "fun_opA", value := 2.0, operator := "==" ]);
+bgate([ name := "ga_chain_fun", input := { "qga_moreThan1_fun", "qga_lessThan3_fun" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_0", cell_types := {"cell_0"}, amount := 10.0, coords := [ x := -200.0, y := -200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 10.0, coords := [ x := 200.0, y := -200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_AB", cell_types := {"cell_AB"}, amount := 10.0, coords := [ x := -200.0, y := 200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 10.0, coords := [ x := 200.0, y := 200.0, r := 0.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "qga_moreThan1_fun", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "qga_lessThan3_fun", rgb := _red ]);
+//cell_colour([ name := "ccol_blue", gate := "qga_exact2_fun", rgb := _blue ]);
+cell_colour([ name := "ccol_blue", gate :=  "ga_chain_fun", rgb := _blue ]);
+
+//---
+bgate([ name := "bga_cell0", input := {"cell_0"} ]);
+plot([ name := "plot_fun0", gate := "bga_cell0", fields := {"fun_zOpA", "fun_opA"}, stats := "avg" ]);
+bgate([ name := "bga_cellA", input := {"cell_A"} ]);
+plot([ name := "plot_funA", gate := "bga_cellA", fields := {"fun_zOpA", "fun_opA"}, stats := "avg" ]);
+bgate([ name := "bga_cellAB", input := {"cell_AB"} ]);
+plot([ name := "plot_funAB", gate := "bga_cellAB", fields := {"fun_zOpA", "fun_opA"}, stats := "avg" ]);
+bgate([ name := "bga_cellABC", input := {"cell_ABC"} ]);
+plot([ name := "plot_funABC", gate := "bga_cellABC", fields := {"fun_zOpA", "fun_opA"}, stats := "avg" ]);
+
+/*bgate([ name := "bga_cell0", input := {"cell_0"} ]);
+plot([ name := "plot_fun0", gate := "bga_cell0", fields := {"fun_opA"}, stats := "range" ]);
+bgate([ name := "bga_cellA", input := {"cell_A"} ]);
+plot([ name := "plot_funA", gate := "bga_cellA", fields := {"fun_opA"}, stats := "range" ]);
+bgate([ name := "bga_cellAB", input := {"cell_AB"} ]);
+plot([ name := "plot_funAB", gate := "bga_cellAB", fields := {"fun_opA"}, stats := "range" ]);
+bgate([ name := "bga_cellABC", input := {"cell_ABC"} ]);
+plot([ name := "plot_funABC", gate := "bga_cellABC", fields := {"fun_opA"}, stats := "range" ]);*/

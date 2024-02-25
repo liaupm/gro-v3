@@ -1,0 +1,55 @@
+/*To test the historic element, fields: target, delay and ini_value. 
+A negative feedback loop creates oscillations and a series of historic elements report the presence of the oscillating protein with different delays */
+
+include gro3
+
+//params
+t_act := 30.0;
+t_act_var := 3.0;
+t_deg := 60.0;
+t_deg_var := 6.0;
+
+//iniMols := {};
+iniMols := { "mol_A" };
+
+selectedForColour := "h_molA_3";
+
+global_params([ seed := 653999, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_synchro", growth_rate := { 0.01, 0.0 }, ini_vol := 2.5, division_vol := 3.2, division_fraction := 0.5 ]);
+cell_type([ name := "cell_A", strain :=  "str_synchro", plasmids := {"bp_A"}, molecules := iniMols ]);
+
+
+//---gene expression
+molecule([ name := "mol_A", times := {-t_deg, t_act}, times_var := { t_deg_var, t_act_var} ]);
+
+bgate([ name := "ga_notA", input := {"-mol_A"} ]);
+operon([ name := "op_A", gate := "ga_notA", output := {"mol_A"} ]);
+bplasmid([ name := "bp_A", operons := { "op_A" } ]);
+
+//---odes
+function([ name := "fun_const", type := "const", params := { 2.3 } ]);
+
+historic([ name := "h_molA_1", target := "mol_A", delay := 1.0, ini_value := "ga_notA" ]);
+historic([ name := "h_molA_2", target := "mol_A", delay := 5.0, ini_value := "op_A" ]);
+historic([ name := "h_molA_3", target := "mol_A", delay := 10.1, ini_value := "bp_A"  ]);
+historic([ name := "h_molA_4", target := "mol_A", delay := 61.0, ini_value := "fun_const" ]);
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 1.0, coords := [ r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+bgate([ name := "ga_molA", input := {"mol_A"} ]);
+cell_colour([ name := "ccol_green", gate := "ga_molA", rgb := _green ]);
+bgate([ name := "ga_colour", input := {selectedForColour} ]);
+cell_colour([ name := "ccol_red", gate := "ga_colour", rgb := _red ]);
+
+//---
+plot([ name := "plot_A", fields := { "mol_A" }, stats := {"avg"} ]);
+plot([ name := "plot_Aselect", fields := { selectedForColour }, stats := "avg" ]);
+plot([ name := "plot_all", fields := { "mol_A", "h_molA_1", "h_molA_2", "h_molA_3", "h_molA_4" }, stats := "avg" ]);

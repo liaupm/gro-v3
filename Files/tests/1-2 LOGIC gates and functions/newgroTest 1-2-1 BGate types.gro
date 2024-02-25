@@ -1,0 +1,61 @@
+/*To test the different logic functions of bgates, with different number and nature of inputs, some negated. Some gates in chain.
+To test:
+ - Change selectedGate
+ - Create different combinations
+*/
+
+include gro3
+
+selectedGate := "ga_chain";
+
+global_params([ seed := 130094 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_0", strain := "_str_nogrowth" ]);
+cell_type([ name := "cell_A1", strain := "_str_nogrowth", plasmids := {"p_A1"} ]);
+cell_type([ name := "cell_AB", strain := "_str_nogrowth", plasmids := { "p_A1", "p_B" } ]);
+cell_type([ name := "cell_AC", strain := "_str_nogrowth", plasmids := { "p_A2", "p_C" } ]);
+cell_type([ name := "cell_B", strain := "_str_nogrowth", plasmids := { "p_B" } ]);
+cell_type([ name := "cell_BC", strain := "_str_nogrowth", plasmids := { "p_B", "p_C" } ]);
+
+
+//---elements
+molecule([ name := "mol_A", times := { -20.0, 10.0 } ]);
+operon([ name := "op_A", output := {"mol_A"} ]);
+
+plasmid([ name := "p_A1", operons := {"op_A"} ]);
+plasmid([ name := "p_A2", operons := {"op_A"} ]);
+plasmid([ name := "p_B" ]);
+plasmid([ name := "p_C" ]);
+
+
+//---gates
+bgate([ name := "ga_pA1", input := { "p_A1" } ]);
+bgate([ name := "ga_pB", input := { "-p_B" } ]);
+bgate([ name := "ga_pC", type := "NOT", input := { "p_C" } ]);
+
+bgate([ name := "ga_pAB_AND", type := "AND", input := { "ga_pA1", "p_B" } ]);
+bgate([ name := "ga_pAB_OR", type := "OR", input := { "op_A", "-p_B" } ]);
+bgate([ name := "ga_pAB_XOR", type := "XOR", input := { "mol_A", "p_B" } ]);
+
+bgate([ name := "ga_pBC_NAND", type := "NAND", input := { "p_B", "p_C" } ]);
+bgate([ name := "ga_pABC_NOR", type := "NOR", input := { "op_A", "p_B", "p_C" } ]);
+bgate([ name := "ga_pAB_XNOR", type := "XNOR", input := { "mol_A", "p_B" } ]);
+
+bgate([ name := "ga_chain", type := "OR", input := { "ga_pAB_AND", "-ga_pBC_NAND" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_0", cell_types := {"cell_0"}, amount := 10.0, coords := [ x := -300.0, y := -200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_A1", cell_types := {"cell_A1"}, amount := 10.0, coords := [ x := 0.0, y := -200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_AB", cell_types := {"cell_AB"}, amount := 10.0, coords := [ x := 300.0, y := -200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_AC", cell_types := {"cell_AC"}, amount := 10.0, coords := [ x := -300.0, y := 200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 10.0, coords := [ x := 0.0, y := 200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_BC", cell_types := {"cell_BC"}, amount := 10.0, coords := [ x := 300.0, y := 200.0, r := 0.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := selectedGate, rgb := _green ]);

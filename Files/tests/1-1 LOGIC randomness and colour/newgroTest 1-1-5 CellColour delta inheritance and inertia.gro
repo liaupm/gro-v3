@@ -1,0 +1,108 @@
+/*To test the inheritance and inertia fields of randomness, and the delta mode and delta (or delta_params) field of cell_colour
+
+To test:
+ - Use different delta means and stddev
+ - Use different inheritance and inertia values and sampling times
+ - Use different initial numbers of cells
+ - Set the intensity to deterministic to study the delta alone or combine their variabilities
+*/
+
+include gro3
+iniCellNum := 1.0;
+rndInertia := 1.0;
+rndPeriod := 20.0;
+
+maxVal := 1.0;
+//maxVal := 0.5;
+maxValVar := 0.0;
+//maxValVar := 0.5;
+
+deltaVal := 0.002;
+deltaValVar := 0.002;
+//deltaValVar := 0.0;
+
+
+global_params([ seed := 123242 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A" ]);
+cell_type([ name := "cell_B" ]);
+cell_type([ name := "cell_C" ]);
+
+
+//---randomness and colour
+randomness([ name := "rnd_maxVal_A"
+	, inheritance := 0.0
+	, inertia := rndInertia
+	, sampling_time := rndPeriod 
+]);
+
+randomness([ name := "rnd_maxVal_B"
+	, inheritance := 0.90
+	, inertia := rndInertia
+	, sampling_time := rndPeriod 
+]);
+
+randomness([ name := "rnd_maxVal_C"
+	, inheritance := 1.0
+	, inertia := rndInertia
+	, sampling_time := rndPeriod 
+]);
+
+randomness([ name := "rnd_delta_A"
+	, inheritance := 0.0
+	, inertia := rndInertia
+	, sampling_time := rndPeriod 
+]);
+
+randomness([ name := "rnd_delta_B"
+	, inheritance := 0.9
+	, inertia := rndInertia
+	, sampling_time := rndPeriod 
+]);
+
+randomness([ name := "rnd_delta_C"
+	, inheritance := 1.0
+	, inertia := rndInertia
+	, sampling_time := rndPeriod 
+]);
+
+//---
+cell_colour([ name := "ccol_A"
+	, gate := "cell_A"
+	, rgb := _green
+	, mode := "delta"
+	, intensity_rnd := "rnd_maxVal_A"
+	, intensity := { maxVal, maxValVar }
+	, delta_rnd := "rnd_delta_A"
+	, delta := { deltaVal, deltaValVar }
+]);
+
+cell_colour([ name := "ccol_B"
+	, gate := "cell_B"
+	, rgb := _cyan
+	, mode := "delta"
+	, intensity_rnd := "rnd_maxVal_B"
+	, intensity := { maxVal, maxValVar }
+	, delta_rnd := "rnd_delta_B"
+	, delta := { deltaVal, deltaValVar }
+]);
+
+cell_colour([ name := "ccol_C"
+	, gate := "cell_C"
+	, rgb := _blue
+	, mode := "delta"
+	, intensity_rnd := "rnd_maxVal_C"
+	, intensity := { maxVal, maxValVar }
+	, delta_rnd := "rnd_delta_C"
+	, delta := { deltaVal, deltaValVar }
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := iniCellNum, coords := [ x := -500.0, y := 300.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := iniCellNum, coords := [ x := 0.0, y := -300.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_C", cell_types := {"cell_C"}, amount := iniCellNum, coords := [ x := 500.0, y := 300.0, r := 10.0 ] ]);

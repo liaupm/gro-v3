@@ -1,0 +1,77 @@
+/*To test the inertia and sampling_time fields of randomness, and the intensity (or intensity_params) field of cell_colour
+ - "rnd_A" is expected to produce cells with different intensities uniformly distributed in the space
+ - "rnd_B" is expected to keep cells with similar intensities spatially close
+ - "rnd_C" is expected to produce a single intensity (no variability)
+The inheritance field is set to 1.0 (no resampling) to study the inertia alone
+To test:
+ - Use different intensity means and stddev
+ - Use different inertia values
+ - Ude different sampling periods
+ - Use different initial numbers of cells
+*/
+
+include gro3
+
+iniCellNum := 1.0;
+rndInertia := 0.95;
+rndPeriod := 5.0;
+intensityMean := 0.5;
+intensitiVar := 0.1;
+
+global_params([ seed := 123242 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A" ]);
+cell_type([ name := "cell_B" ]);
+cell_type([ name := "cell_C" ]);
+
+
+//---randomness and colour
+randomness([ name := "rnd_A"
+	, inheritance := 1.0
+	, inertia := 0.0
+	, sampling_time := rndPeriod
+]);
+
+randomness([ name := "rnd_B"
+	, inheritance := 1.0
+	, inertia := 0.9
+	, sampling_time := rndPeriod
+]);
+
+randomness([ name := "rnd_C"
+	, inheritance := 1.0
+	, inertia := 1.0
+	, sampling_time := rndPeriod
+]);
+
+//---
+cell_colour([ name := "ccol_A"
+	, gate := "cell_A"
+	, rgb := _green
+	, intensity_rnd := "rnd_A"
+	, intensity := { intensityMean, intensitiVar }
+]);
+
+cell_colour([ name := "ccol_B"
+	, gate := "cell_B"
+	, rgb := _cyan
+	, intensity_rnd := "rnd_B"
+	, intensity := { intensityMean, intensitiVar }
+]);
+
+cell_colour([ name := "ccol_C"
+	, gate := "cell_C"
+	, rgb := _blue
+	, intensity_rnd := "rnd_C"
+	, intensity := { intensityMean, intensitiVar }
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := iniCellNum, coords := [ x := -500.0, y := 300.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := iniCellNum, coords := [ x := 0.0, y := -300.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_C", cell_types := {"cell_C"}, amount := iniCellNum, coords := [ x := 500.0, y := 300.0, r := 10.0 ] ]);

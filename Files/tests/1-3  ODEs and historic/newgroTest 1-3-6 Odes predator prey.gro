@@ -1,0 +1,54 @@
+/*To test ode chaining, implementing a simple Lotka-Volterra predator-prey model
+The oscillations are stable only for specific values of the params. encountersVar introduces some noise (stochastic differential equations). 
+Some noise creates oscillations of dfferent amplityde; too much noise makes it unstable and eventually ends the oscillations.
+Notice where and how the noise is incorporated to prevent undesired behaviours */
+
+include gro3
+
+iniPrey := 1.0;
+iniPredator := 1.0;
+
+preyReproduction := 2.0 / 30.0;
+preyKill := 4.0 / 30.0;
+predatorFeed := 0.1;
+predatorCompetence := 0.1;
+
+encountersVar := 0.5;
+
+global_params([ seed := 13631114, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+bplasmid([ name := "bp_die", loss_prob := 1.0 ]);
+bgate([ name := "bga_die", input := {"-bp_die"} ]);
+strain([ name := "str_custom", death_gate := "bga_die", growth_rate := {  0.01, 0.0 }, death_threshold := 10.0 ]);	
+strain([ name := "str_synchro", growth_rate := {  0.01, 0.0 }, ini_vol := 2.5, division_vol := 3.2, division_fraction := 0.5 ]);	
+
+cell_type([ name := "cell_A", strain := "_str_nogrowth", bplasmids := {"bp_die"} ]);
+
+
+//---logic
+function([ name := "fun_encounters", type := "const", params := {1.0}, rnd_params := {0.0, encountersVar}, min := 0.0 ]);
+
+function([ name := "fun_haunt", input := { "ode_prey", "ode_predator", "fun_encounters" }, type := "product", round := 6 ]);
+
+function([ name := "fun_prey", input := { "ode_prey", "fun_haunt" }, type := "sum", params := { preyReproduction, -preyKill } ]);
+function([ name := "fun_predator", input := { "fun_haunt", "ode_predator" }, type := "sum", params := { predatorFeed, -predatorCompetence } ]);
+
+ode([ name := "ode_prey", input := "fun_prey", ini_value := iniPrey, scale := 1.0 ]);
+ode([ name := "ode_predator", input := "fun_predator", ini_value := iniPredator, scale := 1.0 ]);
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", rgb := _green, target := "ode_prey", scale := 1.0 ]);
+cell_colour([ name := "ccol_red", rgb := _red, target := "ode_predator", scale := 1.0 ]);
+
+//---
+cells_plot([ name := "cplt_odes", fields := { "ode_prey", "ode_predator" }, stats := {"avg"}, historic_size := 10000 ]);
+cells_plot([ name := "cplt_rates", fields := { "fun_prey", "fun_predator" }, stats := {"avg"}, historic_size := 10000 ]);
+cells_plot([ name := "cplt_haunt", fields := { "fun_haunt" }, stats := {"avg"} ]);

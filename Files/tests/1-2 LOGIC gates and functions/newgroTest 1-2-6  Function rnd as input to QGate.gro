@@ -1,0 +1,81 @@
+/*To test the randomness in functions that are used as input for qgates. Fields: rnd and rnd_params. Also in combination with fields: min, max and auto_vol.
+
+Expected without min, max and auto_vol: 
+ - cell_A, 1 copies, true for lessThan3, green
+ - cell_C, 3 copies, true for moreThan1, red
+ - cel_B, 2 copies, true for all, including the bgate, white
+ 
+The use randomness produces noise in the evaluation that makes some cells to temporarily have the wrong colour. 
+To test: 
+ - Change selectedFunImpl
+ - Change the distribution params, including a bias (mean not 0) 
+ - Change the inertia and inheritance params
+ - Combine with autoVol, minVal and maxVal
+ - Check that the evaluation is correct from t0
+*/
+
+include gro3
+
+selectedFunImpl := "fun_zOpA_normal";
+autoVol := "none";
+minVal := -1.0;
+maxVal := 5.0;
+
+//---params
+global_params([ seed := 130094, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_0", strain := "_str_slow", plasmids := {} ]);
+cell_type([ name := "cell_A", strain := "_str_slow", plasmids := {"p_A"} ]);
+cell_type([ name := "cell_AB", strain := "_str_slow", plasmids := { "p_A", "p_B" } ]);
+cell_type([ name := "cell_ABC", strain := "_str_slow", plasmids := { "p_A", "p_B", "p_C" } ]);
+
+
+//---elements
+operon([ name := "op_A" ]);
+plasmid([ name := "p_A", operons := {"op_A"} ]);
+plasmid([ name := "p_B", operons := {"op_A"} ]);
+plasmid([ name := "p_C", operons := {"op_A"} ]);
+
+
+//---logic
+randomness([ name := "rnd_normal", dist_type := "normal", inertia := 0.0, inheritance := 0.0 ]);
+randomness([ name := "rnd_uni", dist_type := "uniform", inertia := 0.0, inheritance := 0.0 ]);
+
+function([ name := "fun_zOpA_exact", input := {"op_A"}, min := minVal, max := maxVal, auto_vol := autoVol ]);
+function([ name := "fun_zOpA_normal", input := {"op_A"}, /*rnd := "rnd_normal",*/ rnd_params := { 0.5, 0.1 }, min := minVal, max := maxVal, auto_vol := autoVol ]);
+function([ name := "fun_zOpA_uni", input := {"op_A"}, rnd := "rnd_uni", rnd_params := { 0.0, 0.0 }, min := minVal, max := maxVal, auto_vol := autoVol ]);
+
+function([ name := "fun_opA", input := {selectedFunImpl} ]);
+
+//---
+qgate([ name := "qga_moreThan1_fun", input := "fun_opA", value := 1.0, operator := ">" ]);
+qgate([ name := "qga_lessThan3_fun", input := "fun_opA", value := 3.0, operator := "<" ]);
+qgate([ name := "qga_exact2_fun", input := "fun_opA", value := 2.0, operator := "==" ]);
+bgate([ name := "ga_chain_fun", input := { "qga_moreThan1_fun", "qga_lessThan3_fun" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_0", cell_types := {"cell_0"}, amount := 100.0, coords := [ x := -200.0, y := -200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ x := 200.0, y := -200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_AB", cell_types := {"cell_AB"}, amount := 100.0, coords := [ x := -200.0, y := 200.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 100.0, coords := [ x := 200.0, y := 200.0, r := 0.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "qga_moreThan1_fun", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "qga_lessThan3_fun", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate :=  "ga_chain_fun", rgb := _blue ]);
+
+//---
+bgate([ name := "bga_cell0", input := {"cell_0"} ]);
+plot([ name := "plot_fun0", gate := "bga_cell0", fields := {"fun_zOpA_exact", "fun_opA"}, stats := "avg" ]);
+bgate([ name := "bga_cellA", input := {"cell_A"} ]);
+plot([ name := "plot_funA", gate := "bga_cellA", fields := {"fun_zOpA_exact", "fun_opA"}, stats := "avg" ]);
+bgate([ name := "bga_cellAB", input := {"cell_AB"} ]);
+plot([ name := "plot_funAB", gate := "bga_cellAB", fields := {"fun_zOpA_exact", "fun_opA"}, stats := "avg" ]);
+bgate([ name := "bga_cellABC", input := {"cell_ABC"} ]);
+plot([ name := "plot_funABC", gate := "bga_cellABC", fields := {"fun_zOpA_exact", "fun_opA"}, stats := "avg" ]);

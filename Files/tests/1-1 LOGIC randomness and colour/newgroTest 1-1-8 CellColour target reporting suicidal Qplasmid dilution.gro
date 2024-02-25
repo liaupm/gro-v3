@@ -1,0 +1,41 @@
+/* To test the target and scale fields of cell_colour. The cells report the concentration of a suicide qplasmid that gets diluted, in log scale.
+To test:
+ - Try different initial numbers of plasmids
+ - Switch between reportingthe absolute number of plasmids and the concentration 
+ - Use the custom strain to better test dilution due to cell growth and the slow strain to test the effect of division
+*/
+
+include gro3
+
+global_params([ seed := 1234, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//----cells
+strain([ name := "str_custom", growth_rate := { 0.001, 0.0 }, ini_vol := 1.0, division_vol := 10.0  ]);	
+
+cell_type([ name := "cell_A"
+	, strain := "str_custom"
+	//, strain := "_str_slow"
+	, qplasmids := {"qp_A"} 
+	, qplasmid_amounts := {100.0}
+]);
+
+//---plasmid
+qplasmid([ name := "qp_A" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 10.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+function([ name := "fun_concPlas", input := {"qp_A"}, type := "sum", params := {1.0}, auto_vol := "division" ]);
+function([ name := "fun_logPlas", input := {"qp_A"}, type := "log", params := {10.0}, auto_vol := "division" ]);
+cell_colour([ name := "ccol_green", gate := "qp_A", rgb := _green, target := "fun_logPlas", scale := 0.5 ]);
+
+//---
+plot([ name := "plot_plas", fields := {"qp_A", "fun_concPlas"}, stats := "avg" ]);
+plot([ name := "plot_vol", fields := {"_qm_vol"}, stats := "avg" ]);
+plot([ name := "plot_log", fields := {"fun_logPlas"}, stats := "avg" ]);

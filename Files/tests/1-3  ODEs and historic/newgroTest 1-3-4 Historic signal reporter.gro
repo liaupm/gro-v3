@@ -1,0 +1,56 @@
+/*To test the historic element, fields: target, delay
+historic elements with different delays report past concentrations of a signal in the medium */
+
+include gro3
+
+//params
+selectedForColour := "h_sA_1";
+
+global_params([ seed := 653999, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_synchro", growth_rate := {  0.01, 0.0 }, ini_vol := 2.5, division_vol := 3.2, division_fraction := 0.5 ]);	
+cell_type([ name := "cell_A", strain := "str_synchro" ]);
+
+//---signals
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.1, colour := _magenta, colour_sat := 10.0 ]);
+
+
+//---odes
+historic([ name := "h_sA_1", target := "_conc_s_A", delay := 5.0 ]);
+historic([ name := "h_sA_2", target := "_conc_s_A", delay := 10.0 ]);
+//historic([ name := "h_sA_3", target := "_conc_s_A", delay := 5.0  ]);
+//historic([ name := "h_sA_4", target := "_conc_s_A", delay := 10.0 ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ r := 100.0 ] ]);
+
+//---
+timer([ name := "t_A", start := 50.0, stop := 1000.0, period := 10.0 ]);
+
+signal_placer([ name := "sp_A"
+	, signals := {"s_A"}
+	, amount := 3000.0
+	, sources := 10.0
+	, coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+	, timer := "t_A"
+]);
+
+
+//------------ VISUALS -----------------------
+bgate([ name := "bga_sA", input := {"_conc_s_A"} ]);
+function([ name := "fun_sAlog", input := {"_conc_s_A"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_red", gate := "bga_sA", rgb := _red, target := "fun_sAlog", scale := 0.5 ]);
+
+bgate([ name := "bga_h", input := {selectedForColour} ]);
+function([ name := "fun_h", input := {selectedForColour}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_green", gate := "bga_h", rgb := _green, target := "fun_h", scale := 0.5 ]);
+
+//---
+plot([ name := "plot_A", fields := { "_conc_s_A" }, stats := {"avg"} ]);
+plot([ name := "plot_Aselect", fields := { selectedForColour }, stats := "avg" ]);
+plot([ name := "plot_all", fields := { "_conc_s_A", "h_sA_1", "h_sA_2" }, stats := "avg" ]);

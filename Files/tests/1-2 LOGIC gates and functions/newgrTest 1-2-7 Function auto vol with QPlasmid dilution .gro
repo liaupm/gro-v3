@@ -1,0 +1,71 @@
+/*To test the automatic division by volume in functions to pass amounts to concentrations with a suicide qplasmids that gets diluted by cell growth_rate.
+Check that the concentration function gests lower as the cell grows while the amount of plasmid is constant.
+*/
+
+include gro3
+
+global_params([ seed := 130094, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_A", growth_rate := 0.02, ini_vol := { 1.0, 0.0 }, division_vol := 5.0 ]);
+
+cell_type([ name := "cell_A"
+	, strain := "str_A"
+	, qplasmids := {"p_A"}
+	, qplasmid_amounts := {10}
+]);
+
+cell_type([ name := "cell_AB"
+	, strain := "str_A"
+	, qplasmids := { "p_A", "p_B" }
+	, qplasmid_amounts := {10,10}
+]);
+
+cell_type([ name := "cell_ABC"
+	, strain := "str_A"
+	, qplasmids := { "p_A", "p_B", "p_C" }
+	, qplasmid_amounts := {10,10,10}
+]);
+
+//---elements
+operon([ name := "op_A" ]);
+partition([ name := "part_A", gate := "_ga_true" ]);
+partition([ name := "part_B", gate := "_ga_true" ]);
+partition([ name := "part_C", gate := "_ga_true" ]);
+
+qplasmid([ name := "p_A", operons := {"op_A"}, partition := "part_A" ]);
+qplasmid([ name := "p_B", operons := {"op_A"}, partition := "part_B"  ]);
+qplasmid([ name := "p_C", operons := {"op_A"}, partition := "part_C" ]);
+
+
+//---logic
+function([ name := "fun_otA", input := {"op_A"}, auto_vol := "division" ]);
+
+qgate([ name := "qga_moreThan1", input := "fun_otA", operator := ">" ]);
+qgate([ name := "qga_lessThan3", input := "fun_otA", value := 3.0, operator := "<" ]);
+qgate([ name := "qga_exact", input := "fun_otA", value := 2.0, operator := "==" ]);
+
+bgate([ name := "ga_chain", input := { "qga_moreThan1", "qga_lessThan3" } ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := -100.0, y := 0.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_AB", cell_types := {"cell_AB"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 1.0, coords := [ x := 100.0, y := 0.0, r := 0.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "qga_moreThan1", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "qga_lessThan3", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate :=  "ga_chain", rgb := _blue ]);
+
+//---
+bgate([ name := "ga_cellA", input := {"cell_A"} ]);
+cells_plot([ name := "cplt_A", gate := "ga_cellA", fields := {"op_A", "fun_otA"}, stats := {"avg"} ]);
+bgate([ name := "ga_cellAB", input := {"cell_AB"} ]);
+cells_plot([ name := "cplt_AB", gate := "ga_cellAB", fields := {"op_A", "fun_otA"}, stats := {"avg"} ]);
+bgate([ name := "ga_cellABC", input := {"cell_ABC"} ]);
+cells_plot([ name := "cplt_ABC", gate := "ga_cellABC", fields := {"op_A", "fun_otA"}, stats := {"avg"} ]);

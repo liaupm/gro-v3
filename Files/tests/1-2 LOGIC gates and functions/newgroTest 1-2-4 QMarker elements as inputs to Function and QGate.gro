@@ -1,0 +1,62 @@
+/*To test the use of predefined marker fields as input for functions and qgates: "_qm_gr", "_qm_vol", "_qm_dvol" and "_conc_" + signal, directly and chained 
+To test: uncomment just one per colour */
+
+include gro3
+global_params([ seed := 13656 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_A", strain := "_str_wt", ini_vol := 2.35 ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.1, colour := _magenta, colour_sat := 10.0 ]);
+
+
+//---logic
+qgate([ name := "qga_A_direct", input := "_conc_s_A", value := 10.0 ]);
+function([ name := "fun_A", input := {"_conc_s_A"} ]);
+qgate([ name := "qga_A_fun", input := "fun_A", value := 10.0 ]);
+
+qgate([ name := "qga_growth_direct", input := "_qm_gr", operator := ">", value := 0.02 ]);
+function([ name := "fun_growth", input := {"_qm_gr"} ]);
+qgate([ name := "qga_growth_fun", input := "fun_growth", operator := ">", value := 0.02 ]);
+
+qgate([ name := "qga_dvol_direct", input := "_qm_dvol", operator := ">", value := 0.06 ]);
+function([ name := "fun_dvol", input := { "_qm_dvol" } ]);
+qgate([ name := "qga_dvol_fun", input := "fun_dvol", operator := ">", value := 0.06 ]);
+
+qgate([ name := "qga_vol_direct", input := "_qm_vol", operator := ">", value := 3.0 ]);
+function([ name := "fun_vol", input := { "_qm_vol" } ]);
+qgate([ name := "qga_vol_fun", input := "fun_vol", operator := ">", value := 3.0 ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := -200.0, y := 0.0, r := 100.0 ] ]);
+
+//---
+timer([ name := "t_A", start := 50.0, stop := 1000.0, period := 10.0 ]);
+
+signal_placer([ name := "sp_A"
+	, timer := "t_A"
+	, signals := {"s_A"}
+	, amount := 3000.0
+	, sources := 10.0
+	, coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+]);
+
+
+//------------ VISUALS -----------------------
+//cell_colour([ name := "ccol_green", gate := "qga_A_direct", rgb := _green ]);
+cell_colour([ name := "ccol_green", gate := "qga_A_fun", rgb := _green ]);
+
+//cell_colour([ name := "ccol_red", gate := "qga_growth_direct", rgb := _red ]);
+//cell_colour([ name := "ccol_red", gate := "qga_growth_fun", rgb := _red ]);
+
+//cell_colour([ name := "ccol_red", gate := "qga_dvol_direct", rgb := _red ]);
+cell_colour([ name := "ccol_red", gate := "qga_dvol_fun", rgb := _red ]);
+
+//cell_colour([ name := "ccol_blue", gate := "qga_vol_direct", rgb := _blue ]);
+cell_colour([ name := "ccol_blue", gate := "qga_vol_fun", rgb := _blue ]);

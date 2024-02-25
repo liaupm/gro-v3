@@ -1,0 +1,73 @@
+/*To test the inheritance field of randomness, and the intensity (or intensity_params) field of cell_colour
+ - "rnd_A" is expected to produce cells with different intensities uniformly distributed in the space
+ - "rnd_B" is expected to keep cells with similar intensities spatially close
+ - "rnd_C" is expected to produce a single intensity (no variability) or patches if more than one initial cell
+The inertia field is set to 1.0 (no resampling) to study the inheritance alone
+
+To test:
+ - Use different intensity means and stddev
+ - Use different inheritance values
+ - Use different initial numbers of cells
+*/
+
+include gro3
+iniCellNum := 1.0;
+intensityMean := 0.5;
+intensitiVar := 0.1;
+
+global_params([ seed := 75664 ]);
+
+
+//---CELLS	
+cell_type([ name := "cell_A" ]);
+cell_type([ name := "cell_B" ]);
+cell_type([ name := "cell_C" ]);
+
+
+//---RANDOMNESS AND COLOUR
+randomness([ name := "rnd_A"
+	, inheritance := 0.0
+	, inertia := 1.0
+	, sampling_time := 0.0
+]);
+
+randomness([ name := "rnd_B"
+	, inheritance := 0.90
+	, inertia := 1.0
+	, sampling_time := 0.0
+	//, correction := false
+]);
+
+randomness([ name := "rnd_C"
+	, inheritance := 1.0
+	, inertia := 1.0
+	, sampling_time := 0.0
+]);
+
+//---
+cell_colour([ name := "ccol_cyan_A"
+	, gate := "cell_A"
+	, rgb := _green
+	, intensity_rnd := "rnd_A"
+	, intensity := { intensityMean, intensitiVar }
+]);
+
+cell_colour([ name := "ccol_cyan_B"
+	, gate := "cell_B"
+	, rgb := _cyan
+	, intensity_rnd := "rnd_B"
+	, intensity := { intensityMean, intensitiVar }
+]);
+
+cell_colour([ name := "ccol_cyan_C"
+	, gate := "cell_C"
+	, rgb := _blue
+	, intensity_rnd := "rnd_C"
+	, intensity_params := { intensityMean, intensitiVar }
+]);
+
+
+//---PLACERS
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := iniCellNum, coords := [ x := -500.0, y := 300.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := iniCellNum, coords := [ x := 0.0, y := -300.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_C", cell_types := {"cell_C"}, amount := iniCellNum, coords := [ x := 500.0, y := 300.0, r := 10.0 ] ]);

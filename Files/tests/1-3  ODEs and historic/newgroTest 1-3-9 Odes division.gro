@@ -1,0 +1,70 @@
+/*To test how the odes are distributed on cell division. Fields: custom_split, split, split_params, split_dist, split_p and split_scale
+To test: 
+ - Try both the continuous (custom) and binomial splits. 
+ - When continuous, try the four ways to provide the distribution. 
+ - Use the const function as derivative for easiest test and the rate function to test the correct behaviour after division
+*/
+
+include gro3
+
+global_params([ seed := 13631114, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+bplasmid([ name := "bp_die", loss_prob := 1.0 ]);
+bgate([ name := "bga_die", input := {"-bp_die"} ]);
+strain([ name := "str_custom", death_gate := "bga_die", death_threshold := 10.0, growth_rate := {  0.01, 0.0 }, ini_vol := 2.5, division_vol := 3.2, division_fraction := 0.5 ]);	
+strain([ name := "str_synchro", growth_rate := {  0.01, 0.0 }, ini_vol := 2.5, division_vol := 3.2, division_fraction := 0.5 ]);
+strain([ name := "str_synchro2", growth_rate := {  0.01, 0.001 }, division_vol := 5.0, division_fraction := 0.6 ]);
+
+cell_type([ name := "cell_A", strain :=  "str_synchro2", bplasmids := {"bp_die"} ]);
+
+
+//---metabolism
+signal([ name := "s_A", kdiff := 0.2, kdeg := 0.1, colour := _magenta, colour_sat := 10.0 ]);
+signal([ name := "s_B", kdiff := 0.2, kdeg := 0.1, colour := _cyan, colour_sat := 10.0 ]);
+
+
+//---logic
+function([ name := "fun_rate", input := { "_conc_s_A", "_conc_s_B" }, type := "sum", params := { 0.01, -0.01 } ]);
+
+function([ name := "fun_const", type := "const", params := { 0.0 } ]);
+
+distribution([ name := "dist_split", type := "normal", params := {0.5, 0.0} ]);
+myDist := [ type := "uniform", params := {0.0, 0.0} ];
+
+ode([ name := "ode_A"
+	, input := "fun_const"
+	, ini_value := 1.0
+	, scale := 1.0
+	, custom_split := true
+	//, split := { 0.5, 0.1 }
+	, split_dist := "dist_split"
+	, split_p := 0.5
+	, split_scale := 1.0
+]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+
+//---
+timer([ name := "t_A", start := 50.0, stop := -1.0, period := 50.0 ]);
+
+signal_placer([ name := "sp_A"
+	, timer := "t_A"
+	, signals := {"s_A", "s_B"}
+	, amount := 3000.0
+	, coords := [ x := 0.0, y := 0.0, r := 100.0 ]
+]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_red", rgb := _red, target := "ode_A", scale := 1.0 ]);
+
+//---
+cells_plot([ name := "cplt_A", fields := { "ode_A" }, stats := {"avg"} ]);
+cells_plot([ name := "cplt_signals", fields := { "_conc_s_A", "_conc_s_B" }, stats := {"avg"} ]);
+cells_plot([ name := "cplt_all", fields := { "_conc_s_A", "_conc_s_B", "ode_A" }, stats := {"avg"} ]);

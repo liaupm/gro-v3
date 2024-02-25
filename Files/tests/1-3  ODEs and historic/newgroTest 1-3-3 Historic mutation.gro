@@ -1,0 +1,107 @@
+/*To test the historic element, fields: target, delay
+A pair of qplasmids form a positive mutation loop that multiplies the number of plasmids, instead of typical replication.
+A series of historic elements report past states of the amount of plasmids, as amount and concentration
+To test: 
+ - Use different delays, initial number and mutation params 
+ - Try adding eclipse period
+ 
+The plot of the historic elements perfectly matches that of the target element with a delay only when cell divisions are synchronized. If not, the already divided cells have double weight in the average calculation, creating an effect of noise in the plot, but this is perfectly ok.  
+*/
+
+include gro3
+
+//params
+iniCopies := 100.0;
+bEclipse := false;
+eclipseTime := { 4.0, 0.1 } ;
+rateA := 0.002;
+rateB := 0.003;
+
+global_params([ seed := 653999, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+bplasmid([ name := "bp_die", loss_prob := 1.0 ]);
+bgate([ name := "bga_die", input := {"-bp_die"} ]);
+strain([ name := "str_custom", death_gate := "bga_die", growth_rate := {  0.01, 0.0 }, death_threshold := 10.0 ]);	
+strain([ name := "str_synchro", growth_rate := {  0.01, 0.0 }, ini_vol := 2.5, division_vol := 3.2, division_fraction := 0.5 ]);	
+
+cell_type([ name := "cell_A"
+	//, strain := "str_custom"
+	, strain := "str_synchro"
+	//, strain := "_str_slow"
+	, bplasmids := {"bp_die"} 
+	, qplasmids := {"qp_A", "qp_B"} 
+	, qplasmid_amounts := { iniCopies /2, iniCopies /2 }
+	//, qplasmids_as_concs := false
+]);
+
+//---plasmids
+qplasmid([ name := "qp_A", eclipse := eclipseTime, eclipse_marker := "qpA_eclipse" ]);
+qplasmid([ name := "qp_B", eclipse := eclipseTime, eclipse_marker := "qpB_eclipse" ]);
+
+
+//---mutations
+mutation([ name := "mut_AtoB", plasmids := { "qp_A", "qp_B" }, amounts := { -1, 10 } ]);
+mutation([ name := "mut_BtoA", plasmids := { "qp_A", "qp_B" }, amounts := { 10, -1 } ]);
+
+//---
+function([ name := "fun_linearA", input := { "qp_A" }, type := "sum", params := { rateA }, auto_vol := "division" ]);
+qgate([ name := "qga_qpA", input := "qp_A", operator := ">=", value := 1.0 ]);
+mutation_process([ name := "mutp_AtoB"
+	, gate := "qga_qpA"
+	, rate_fun := "fun_linearA"
+	, mutations := {"mut_AtoB"}
+	, eclipse := bEclipse 
+]);
+
+//---
+function([ name := "fun_linearB", input := { "qp_B" }, type := "sum", params := { rateB }, auto_vol := "division" ]);
+qgate([ name := "qga_qpB", input := "qp_B", operator := ">=", value := 1.0 ]);
+mutation_process([ name := "mutp_BtoA"
+	, gate := "qga_qpB"
+	, rate_fun :=  "fun_linearB"
+	, mutations := {"mut_BtoA"}
+	, eclipse := bEclipse 
+]);
+
+
+//---odes
+historic([ name := "h_qpA_1", target := "qp_A", delay := 5.0 ]);
+historic([ name := "h_qpA_2", target := "qp_A", delay := 10.0 ]);
+historic([ name := "h_qpB_1", target := "qp_B", delay := 5.0 ]);
+historic([ name := "h_qpB_2", target := "qp_B", delay := 10.0 ]);
+
+//---
+function([ name := "fun_concA", input := { "qp_A" }, auto_vol := "division" ]);
+function([ name := "fun_concB", input := { "qp_B" }, auto_vol := "division" ]);
+
+historic([ name := "h_qpA_1_conc", target := "fun_concA", delay := 5.0 ]);
+historic([ name := "h_qpA_2_conc", target := "fun_concA", delay := 10.0 ]);
+historic([ name := "h_qpB_1_conc", target := "fun_concB", delay := 5.0 ]);
+historic([ name := "h_qpB_2_conc", target := "fun_concB", delay := 10.0 ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_A", cell_types := { "cell_A" }, amount := 100.0, coords := [ r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+bgate([ name := "bga_qpA", input := {"qp_A"} ]);
+function([ name := "fun_qpAlog", input := {"qp_A"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_red", gate := "bga_qpA", rgb := _red, target := "fun_qpAlog", scale := 0.5 ]);
+
+bgate([ name := "bga_qpB", input := {"qp_A"} ]);
+function([ name := "fun_qpBlog", input := {"qp_B"}, type := "log", params := {10.0} ]);
+cell_colour([ name := "ccol_green", gate := "bga_qpB", rgb := _green, target := "fun_qpBlog", scale := 0.5 ]);
+
+//---
+plot([ name := "plot_allA", fields := {"qp_A", "h_qpA_1", "h_qpA_2" }, stats := "avg" ]);
+plot([ name := "plot_allB", fields := {"qp_B", "h_qpB_1", "h_qpB_2" }, stats := "avg" ]);
+
+plot([ name := "plot_allA_conc", fields := {"fun_concA", "h_qpA_1_conc", "h_qpA_2_conc" }, stats := "avg" ]);
+plot([ name := "plot_allB_conc", fields := {"fun_concB", "h_qpB_1_conc", "h_qpB_2_conc" }, stats := "avg" ]);
+
+//plot([ name := "plot_allEclipse", fields := { "qpA_eclipse", "h_eclipse_3", "h_eclipse_4" }, stats := "avg" ]);

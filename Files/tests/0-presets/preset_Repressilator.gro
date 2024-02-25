@@ -1,0 +1,32 @@
+include gro3
+
+//params
+t_act := 100.0;
+t_act_var := 0.0;
+t_deg := 100.0;
+t_deg_var := 0.0;
+
+//biocircuit
+protein ([ name := "prot_A", times := {-t_deg, t_act}, times_var := { t_deg_var, t_act_var} ]);
+protein ([ name := "prot_B", times := {-t_deg, t_act}, times_var := { t_deg_var, t_act_var} ]);
+protein ([ name := "prot_C", times := {-t_deg, t_act}, times_var := { t_deg_var, t_act_var} ]);
+
+bgate([ name := "ga_notA", input := {"-prot_A"} ]);
+bgate([ name := "ga_notB", input := {"-prot_B"} ]);
+bgate([ name := "ga_notC", input := {"-prot_C"} ]);
+
+operon([ name := "op_A", gate := "ga_notC", output := {"prot_A"} ]);
+operon([ name := "op_B", gate := "ga_notA", output := {"prot_B"} ]);
+operon([ name := "op_C", gate := "ga_notB", output := {"prot_C"} ]);
+
+bplasmid([ name := "bp_ABC", operons := { "op_A", "op_B", "op_C" } ]);
+
+
+//placing cells
+cell_type([ name := "cell_ABC", plasmids := {"bp_ABC"}, molecules := {"prot_A"} ]);
+
+
+//visualization
+cell_colour([ name := "ccol_green", gate := "prot_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "prot_B", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "prot_C", rgb := _blue ]);
