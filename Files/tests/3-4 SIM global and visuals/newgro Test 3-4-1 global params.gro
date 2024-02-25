@@ -1,0 +1,30 @@
+/* to test different global options
+To test, change the values or comment out */
+
+include gro3
+global_params([ seed := 66463
+	, seed_offset := 11
+	, cells_per_thread := 10000
+	, theme := _dark_theme //_bright_theme, _dark_theme
+	//, theme := [ cell_outline := "#ff0000" ]	
+	, auto_zoom := true
+	, show_plots := true
+	, render_signals := false
+	, batch_mode := true //ends the simulation on checkpoint
+]);
+
+
+//---SIGNALS (for render_signals)
+signal([ name := "s_A", kdiff := 0.1, colour := {0.8, 0.0, 0.8}, colour_sat := 10.0 ]);
+signal_placer([ name := "sp_A", signals := {"s_A"}, amount := 10000.0, coords := [ x := -200.0, y := -200.0, r := 0.0 ] ]);
+
+
+//---CELLS (for cells_per_thread, theme and auto_zoom)
+cell_type([ name := "cell_A" ]);
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0 ]);
+cell_colour([ name := "ccol_green", rgb := _green ]);
+
+
+//---CHECKPOINT (for batch_mode)
+timer([ name := "t_end", start := 50.0, stop := 50.0 ]);
+checkpoint([ name := "stop_testBatch", timer := "t_end", message := "not in batch mode" ]);

@@ -1,0 +1,37 @@
+/*To test the effect in speed of the global param cells_per_thread, max_threads and the global param show_performance
+To externally record the real world time taken to reach a fixed number of cells or simulation time */
+
+include gro3
+
+timeLimit := 200.0;
+cellsLimit := 1000.0;
+cellsPerThread := 10000;
+
+global_params([ seed := 123242, cells_per_thread := cellsPerThread, max_threads := 12, show_performance := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_deter"
+	, growth_rate := { 0.035265, 0.0 }
+	, ini_vol := { 2.355, 0.0 }
+	, division_vol := { 3.14, 0.0 }
+	, division_fraction := { 0.5, 0.0 }
+]);
+
+cell_type([ name := "cell_A", strain := "str_deter" ]);
+cell_colour([ name := "ccol_green", rgb := _green ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placer
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 10.0, coords := [ r := 100.0 ] ]);
+
+
+//---checkpoints
+timer([ name := "t_time", start := timeLimit, period := -1.0 ]);
+checkpoint([ name := "stop_time", timer := "t_time", message := "Time limit reached" ]);
+
+pop_qgate([ name := "qpga_cells", input := "_stat_cellnum", value := cellsLimit ]);
+timer([ name := "t_cells", gate := "qpga_cells", mode := "once" ]);
+checkpoint([ name := "stop_cells", timer := "t_cells", message := "Cell number limit reached" ]);

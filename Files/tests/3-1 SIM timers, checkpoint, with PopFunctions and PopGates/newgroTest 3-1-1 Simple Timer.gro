@@ -1,0 +1,53 @@
+/* To test the start, stop, period, is_rnd, period_min and ignore_start fields of timer
+The timer events can be reported with the checkpoints and/or the cell_placer
+To test:
+ - Use different start, stop and period, without stochasticity or condition. Comment ouut to test default values
+ - Specifically, start = 0.0, negative stop = infinite, negative or 0.0 period = once
+ - Make it stochastic and try the ignore_start and period_min fields
+ - Combine both
+*/
+
+include gro3
+global_params([ seed := 1234, show_plots := true ]);
+
+
+//---CELLS
+strain([ name := "str_static"
+	, growth_rate := { 0.0, 0.0 }
+	, ini_vol := { 2.355, 0.0 }
+]);
+
+cell_type([ name := "cell_A", strain := "str_static" ]);
+cell_colour([ name := "ccol_green", rgb := _green ]);
+
+
+//---TIMERS
+timer([ name := "t_deter"
+	, start := 10.0 //0.0
+	, stop := 100.0 //-1.0
+	, period := 1.0 //0.0
+]);
+
+//checkpoint([ name := "stop_A", timer := "t_deter", message := "deterministic timer" ]);
+
+//---
+timer([ name := "t_random"
+	, start := 0.0
+	, stop := -1.0
+	, period := 10.0
+	, is_rnd := true
+	, min_period := 100.0
+	, ignore_start := true
+]);
+
+//checkpoint([ name := "stop_B", timer := "t_random", message := "random timer" ]);
+
+
+//---PLACER
+cell_placer([ name := "cp_A"
+	//, timer := "t_deter"
+	, timer := "t_random"
+	, cell_types := {"cell_A"}
+	, amount := 1.0
+	, coords := [ r := 300.0 ]
+]);

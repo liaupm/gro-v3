@@ -1,0 +1,42 @@
+/* To test the gate and old_coords fields of cell_plating
+Two cell types are placed but only one is affected by the plating process.
+Additionally, only the cells within a circle are affected. 
+To test:
+  - Change the gate condition or comment out
+  - Change the old_coords or comment out
+  - Use a put value
+*/
+
+include gro3
+global_params([ seed := 123242, show_plots := true ]);
+
+
+//-------------------CELL TYPES
+cell_type([ name := "cell_A", strain := "_str_wt" ]);
+cell_type([ name := "cell_B", strain := "_str_wt" ]);
+
+
+//-----------------------PLACER
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 10.0, coords := [ x := -300.0, y := -300.0, r := 0.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 10.0, coords := [ x := 300.0, y := 300.0, r := 0.0 ] ]);
+
+//---
+timer([ name := "t_A", start := 50.0, stop := 10000.0, period := 25.0 ]);
+
+cell_plating([ name := "cpl_A"
+	, timer := "t_A"
+	, gate := "cell_A"
+	, take := 1.0
+	, put := 0.0
+	, coords := [ x := 0.0, y := 0.0, r := 400.0 ]
+	, old_coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+]);
+
+
+//--------------------VISUALS
+cell_colour([ name := "ccol_A", gate := "cell_A", rgb := _blue ]);
+cell_colour([ name := "ccol_B", gate := "cell_B", rgb := _yellow ]);
+
+//---
+cells_plot([ name := "cplt_sum", filter_gate := "_ga_true", fields := { "cell_A", "cell_B" }, stats := {"sum"} ]);
+cells_plot([ name := "cplt_avg", filter_gate := "_ga_true", fields := { "cell_A", "cell_B" }, stats := {"avg"} ]);

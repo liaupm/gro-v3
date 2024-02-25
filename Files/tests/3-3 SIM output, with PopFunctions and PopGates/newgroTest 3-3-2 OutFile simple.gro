@@ -1,0 +1,34 @@
+/*To test the timer, mode, path, folder, file_name, format and precision fields of out_file
+To test:
+ - Use different file and folder names, paths and format (csv or tsv). Comment out to test the default values.  
+ - Check that the folder is created if it does not exist and that previous files are overriden every run
+ - Use different precisions
+ - Use the three modes and check that only the required files are created
+ - Check that the frequency of the output matches the timer
+ - Use a timer that starts at time 0.0 and check that the output matches the initial conditions 
+*/
+
+include tests/0-presets/preset_Repressilator
+
+common_path := "C:/swLIA/pruebas/newGro3";
+
+global_params([ seed := 1234 ]);
+
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 100.0 ]);
+
+
+//---OUTPUT
+pop_stat([ name := "stat_A", input := "prot_A", stats := {"avg"} ]);
+
+timer([ name := "t_output", start := 0.0, stop := 200.0, period := 20.0 ]);
+
+out_file([ name := "file_A"
+	, timer := "t_output"
+	, pop_fields := {"stat_A"}
+	, mode := "both"//"individual", "population", "both"
+	, path := common_path
+	, folder := "gro_myout"
+	, file_name := "grogro"
+	, format := ".csv" //".csv", ".tsv"
+	, precision := 6
+]);

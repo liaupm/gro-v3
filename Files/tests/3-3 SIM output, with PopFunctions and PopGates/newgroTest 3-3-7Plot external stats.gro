@@ -1,0 +1,57 @@
+/* To test the print of external stats to out files 
+To test:
+ - Try the different pop_fields options, both accessing specific stats and printing the whole pack 
+ - Check that the two equivalent ways to access the special fields (direct and through a qmarker) match
+ - Use the automatic "_stat_cellnum"
+ */
+ 
+include tests/0-presets/preset_Repressilator
+
+common_path := "C:/swLIA/pruebas/newGro3";
+
+global_params([ seed := 1234, show_plots := true ]);
+
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 100.0 ]);
+
+
+//---OUTPUT
+pop_stat([ name := "stat_A1", input := "prot_A", stats := {"avg"} ]);
+pop_stat([ name := "stat_A2", input := "prot_A", stats := "avg" ]);
+pop_stat([ name := "stat_B1", input := "prot_B", stats := {"sum", "avg"} ]);
+pop_stat([ name := "stat_B2", input := "prot_B", stats := "classic" ]);
+
+pop_stat([ name := "stat_x", input := "_x", stats := { "avg", "min", "max" } ]);
+pop_stat([ name := "stat_y", input := "_y", stats := "range" ]);
+
+pop_stat([ name := "stat_gr", input := "_gr", stats := "avg" ]);
+pop_stat([ name := "stat_gr2", input := "_qm_gr", stats := "avg" ]);
+pop_stat([ name := "stat_gt", input := "_gt", stats := "avg" ]);
+
+pop_stat([ name := "stat_vol", input := "_volume", stats := "range" ]);
+pop_stat([ name := "stat_vol2", input := "_qm_vol", stats := "range" ]);
+
+pop_stat([ name := "stat_dvol", input := "_d_volume", stats := "avg" ]);
+pop_stat([ name := "stat_dvol2", input := "_qm_dvol", stats := "avg" ]);
+
+pop_stat([ name := "stat_len", input := "_length", stats := "avg" ]);
+pop_stat([ name := "stat_dlen", input := "_d_length", stats := "avg" ]);
+
+
+plot([ name := "cplt_bio"
+	, pop_fields := {"stat_A1", "stat_A2", "stat_A1_avg", "stat_A2_avg" }
+	//, pop_fields := {"stat_B1", "stat_B2", "stat_B1_avg", "stat_B2_avg" }
+]);
+
+plot([ name := "cplt_pos"
+	, pop_fields := { "stat_x", "stat_y", "stat_y_min" }
+]);
+
+plot([ name := "cplt_size" //to many
+	, pop_fields := { "stat_gr", "stat_gr2", "stat_gt", "stat_vol", "stat_vol2", "stat_dvol", "stat_dvol2", "stat_len", "stat_dlen" }
+	//, pop_fields := { "stat_vol", "stat_vol2", "stat_dvol", "stat_dvol2" }
+	//, pop_fields := {"stat_len", "stat_dlen" }
+]);
+
+plot([ name := "cplt_auto"
+	, pop_fields := { "_stat_cellnum" }
+]);

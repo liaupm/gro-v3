@@ -1,0 +1,85 @@
+/* To test special automatic fields in Plot with filter gate 
+To test:
+ - Check the different types of fields
+ - Use different stats and stat packs
+ - Use the gate field to filter the cells
+ - Check that the plot does not oscillate when the value is not stochastic due to rounding issues
+*/
+
+include gro3
+
+common_path := "C:/swLIA/pruebas/newGro3";
+
+global_params([ seed := 1234, show_plots := true ]);
+
+
+//---CELL TYPES
+//wt
+strain([ name := "str_wt", growth_rate := 0.03 ]);
+
+cell_type([ name := "cell_A", strain := "str_wt" ]);
+cell_type([ name := "cell_B", strain := "str_wt" ]);
+cell_type([ name := "cell_C", strain := "str_wt" ]);
+
+//mutant
+strain([ name := "str_mutant", growth_rate := { 0.0, 0.0 } ]);
+
+cell_type([ name := "cell_mutA", strain := "str_mutant" ]);
+cell_type([ name := "cell_mutB", strain := "str_mutant" ]);
+cell_type([ name := "cell_mutC", strain := "str_mutant" ]);
+
+
+//---PLACERS
+cell_placer([ name := "cp_WT"
+	, cell_types := {"cell_A", "cell_B", "cell_C" }
+	, cell_probs := { 1.0, 1.0, 1.0 }
+	, mix := true
+	, amount := 100.0
+	, coords := [ x := -200.0, y := 0.0, r := 10.0 ]
+]);
+
+cell_placer([ name := "cp_mutant"
+	, cell_types := {"cell_mutA", "cell_mutB", "cell_mutC" }
+	, cell_probs := { 1.0, 1.0, 1.0 }
+	, mix := true
+	, amount := 100.0
+	, coords := [ x := 200.0, y := 0.0, r := 10.0 ]
+]);
+
+
+//---VISUALS
+cell_colour([ name := "ccol_green", gate := "cell_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "cell_B", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "cell_C", rgb := _blue ]);
+cell_colour([ name := "ccol_yellow", gate := "cell_mutA", rgb := _yellow ]);
+cell_colour([ name := "ccol_magenta", gate := "cell_mutB", rgb := _magenta ]);
+cell_colour([ name := "ccol_cyan", gate := "cell_mutC", rgb := _cyan ]);
+
+//plots
+timer([ name := "t_output", start := 10.0, stop := 500.0, period := 10.0 ]);
+
+cells_plot([ name := "cplt_pos"
+	, gate := "str_wt"
+	, fields := { "_x", "_y" } 
+	, stats := {"min", "max"} 
+]);
+
+cells_plot([ name := "cplt_grAll"
+	, fields := { "_gr" } 
+	, stats := {"avg", "max" } 
+]);
+
+cells_plot([ name := "cplt_grWt"
+	, gate := "str_wt"
+	, fields := { "_gr" } 
+	, stats := {"avg", "max" }
+]);
+
+cells_plot([ name := "cplt_volSum"
+	, timer := "t_output"
+	, gate := "str_wt"
+	, fields := { "_volume" } 
+	, stats := {"sum"} 
+	, path := common_path
+	, file_name := "volSum"
+]);

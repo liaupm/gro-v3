@@ -1,0 +1,94 @@
+/* To test the automatic stats of plot elem 
+To test:
+ - Check that the cell type counts add to the strain counts 
+ - Check that it is equivalent to use a gate and to access the elem directyle */ 
+
+include gro3
+
+common_path := "C:/swLIA/pruebas/newGro3";
+
+global_params([ seed := 1234, show_plots := true ]);
+
+
+//---CELL TYPES
+//wt
+strain([ name := "str_wt", growth_rate := { 0.01, 0.0001 } ]);
+
+cell_type([ name := "cell_A", strain := "str_wt" ]);
+cell_type([ name := "cell_B", strain := "str_wt" ]);
+cell_type([ name := "cell_C", strain := "str_wt" ]);
+
+
+//mutant
+strain([ name := "str_mutant", growth_rate := { 0.002, 0.0001 } ]);
+
+cell_type([ name := "cell_mutA", strain := "str_mutant" ]);
+cell_type([ name := "cell_mutB", strain := "str_mutant" ]);
+cell_type([ name := "cell_mutC", strain := "str_mutant" ]);
+
+
+//---PLACERS
+cell_placer([ name := "cp_WT"
+	, cell_types := {"cell_A", "cell_B", "cell_C" }
+	, cell_probs := { 1.0, 1.0, 1.0 }
+	, mix := true
+	, amount := 100.0
+	, coords := [ x := -200.0, y := 0.0, r := 10.0 ]
+]);
+
+cell_placer([ name := "cp_mutant"
+	, cell_types := {"cell_mutA", "cell_mutB", "cell_mutC" }
+	, cell_probs := { 1.0, 1.0, 1.0 }
+	, mix := true
+	, amount := 100.0
+	, coords := [ x := 200.0, y := 0.0, r := 10.0 ]
+]);
+
+
+//---VISUALS
+cell_colour([ name := "ccol_green", gate := "cell_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "cell_B", rgb := _red ]);
+cell_colour([ name := "ccol_blue", gate := "cell_C", rgb := _blue ]);
+cell_colour([ name := "ccol_yellow", gate := "cell_mutA", rgb := _yellow ]);
+cell_colour([ name := "ccol_magenta", gate := "cell_mutB", rgb := _magenta ]);
+cell_colour([ name := "ccol_cyan", gate := "cell_mutC", rgb := _cyan ]);
+
+
+//plots
+timer([ name := "t_output", start := 10.0, stop := 500.0, period := 10.0 ]);
+
+cells_plot([ name := "cplt_WT"
+	, fields := { "str_wt", "cell_A", "cell_B", "cell_C" }
+	//, colours := { "#0c9c1d", "#d90404", "#0373fc" }
+]);
+
+/*
+cells_plot([ name :=  "cplt_mutant"
+	, timer := "t_output"
+	, fields := { "str_mutant", "cell_mutA", "cell_mutB", "cell_mutC" }
+	, colours := { "#0c9c1d", "#d90404", "#0373fc" }
+	, path := common_path
+	, file_name := "mutants"
+	, format := ".jpg"
+]);
+*/ 
+
+cells_plot([ name := "cplt_stats"
+	, fields := { "str_wt" }
+	, stats := "all"
+]);
+
+cells_plot([ name := "cplt_strains"
+	, fields := { "str_wt", "str_mutant", "_ga_true" }
+	, stats := {"sum"}
+]);
+
+cells_plot([ name := "cplt_gates"
+	, fields := { "cell_A", "cell_B", "cell_C", "cell_A", "cell_B", "cell_C" }
+	//, colours := { "#0c9c1d", "#d90404", "#0373fc" }
+]);
+
+/*
+cells_plot([ name := "cplt_all"
+	, fields := { "str_wt", "cell_A", "cell_B", "cell_C", "str_mutant", "cell_mutA", "cell_mutB", "cell_mutC" }
+]);*/

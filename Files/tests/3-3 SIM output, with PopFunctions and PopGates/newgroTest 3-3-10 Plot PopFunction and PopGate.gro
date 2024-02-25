@@ -1,0 +1,37 @@
+/* To test the plot of logic simulation elements (pop_function, pop_bgate, pop_qgate)
+To test:
+ - Try the different pop_fields options, both accessing specific stats and printing the whole pack 
+ - Check that the value of functions and gates makes sense
+ - Check that for pop_stat with a single stat, there is no difference between specifying it or just using he name of the element
+*/
+
+include tests/0-presets/preset_Repressilator
+
+common_path := "C:/swLIA/pruebas/newGro3";
+
+global_params([ seed := 1234, show_plots := true ]);
+
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 100.0 ]);
+
+
+//---OUTPUT
+pop_stat([ name := "stat_A", input := "prot_A", stats := {"sum"} ]);
+pop_stat([ name := "stat_C", input := "prot_C", stats := {"sum"} ]);
+
+pop_function([ name := "pfun_AnotC", input := { "stat_A_sum", "stat_C_sum" }, type := "sum", params := {1.0, -1.0} ]);
+pop_function([ name := "pfun_AplusC", input := { "stat_A", "stat_C" }, type := "sum", params := {1.0, 1.0} ]);
+
+pop_qgate([ name := "qpga_moreAthanC", input := "pfun_AnotC", operator := ">=", value := 0.0 ]);
+pop_qgate([ name := "qpga_smallDiffAC", input := "pfun_AnotC", comp_operator := "<=", value := 100.0 ]);
+pop_bgate([ name := "bpga_and", input := { "qpga_moreAthanC", "qpga_smallDiffAC" } ]);
+
+
+plot([ name := "plot_funs"
+	, gate := "_ga_true"
+	, pop_fields := { "stat_A", "stat_C", "pfun_AnotC", "pfun_AplusC" }
+]);
+
+plot([ name := "plot_gates"
+	, gate := "_ga_true"
+	, pop_fields := { "qpga_moreAthanC", "qpga_smallDiffAC", "bpga_and" }
+]);

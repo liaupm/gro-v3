@@ -1,0 +1,67 @@
+/* To test all the fields of the timer
+To test:
+ - Use different start, stop and period, without stochasticity or condition
+ - Make it stochastic and try the ignore_start and min_period fields
+*/
+
+include tests/0-presets/preset_Repressilator
+
+global_params([ seed := 1234, show_plots := true ]);
+
+
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 100.0, coords := [ r := 100.0 ] ]);
+
+
+//---LOGIC
+population_qgate([ name := "pga_num", input :=  "_stat_cellnum", value := 200.0, operator := ">=" ]);
+population_bgate([ name := "pga_not_num", input := {"-pga_num"} ]);
+
+//---
+pop_stat([ name := "stat_A", input := "prot_A", stats := "avg" ]);
+population_qgate([ name := "pga_A", input :=  "stat_A", value := 0.6, operator := ">=" ]);
+
+pop_stat([ name := "stat_B", input := "prot_B", stats := "avg" ]);
+population_qgate([ name := "pga_B", input :=  "stat_B", value := 0.6, operator := ">=" ]);
+population_bgate([ name := "pga_and", input := { "pga_A", "pga_B" } ]);
+
+
+//---TIMERS
+/*timer([ name := "t_A"
+	, gate := "pga_num"
+	, mode := "change" //"once", "change", "always", "trigger"
+	, start := 0.0
+	, stop := -1.0
+	, period := 0.1
+]); */
+
+//checkpoint([ name := "stop_A", timer := "t_A", message := "timer A" ]);
+
+//---
+timer([ name := "t_B"
+	, gate := "pga_and"
+	, mode := "trigger" //"once", "change", "always", "trigger"
+	, start := 0.0
+	, stop := -1.0
+	, period := 10.0
+]);
+
+checkpoint([ name := "stop_B", timer := "t_B", message := "timer B" ]);
+
+
+//---REPORTER CELLS AND PLACERS
+strain([ name := "str_static", growth_rate := { 0.0, 0.0 }, ini_vol := { 2.355, 0.0 } ]);
+cell_type([ name := "cell_reporter", strain := "str_static" ]);
+
+cell_placer([ name := "cp_reporter", timer := "t_B", cell_types := {"cell_reporter"}, amount := 1.0, coords := [ x := -500.0, r := 10.0 ] ]);
+
+
+//---VISUALS
+cell_colour([ name := "ccol_green", gate := "ga_cellA", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "ga_cellB", rgb := _red ]);
+cell_colour([ name := "ccol_white", gate := "cell_reporter", rgb := _white ]);
+
+cells_plot([ name := "cplt_num", pop_fields := { "_stat_cellnum" } ]);
+//cells_plot([ name := "cplt_numga", pop_fields := { "pga_num" } ]);
+cells_plot([ name := "cplt_prots", pop_fields := { "stat_A", "stat_B" } ]);
+cells_plot([ name := "cplt_protGa", pop_fields := { "pga_and" } ]);
+cells_plot([ name := "cplt_reporter", fields := { "cell_reporter" }, stats := {"sum"} ]);

@@ -1,0 +1,65 @@
+/* To test the take, take_params, take_dist, put, put_params and put_dist fields of cell_plating
+Four cell types are placed and then re-plated, A deterministic, B normal, C custom as dictionary, D custom as element */
+
+include gro3
+global_params([ seed := 123242, show_plots := true ]);
+
+
+//-------------------CELL TYPES
+cell_type([ name := "cell_A" ]);
+cell_type([ name := "cell_B" ]);
+cell_type([ name := "cell_C" ]);
+cell_type([ name := "cell_D" ]);
+
+
+//-----------------------PLACERS
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 10.0, coords := [ x := -500.0, y := -500.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_B", cell_types := {"cell_B"}, amount := 10.0, coords := [ x := 500.0, y := -500.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_C", cell_types := {"cell_C"}, amount := 10.0, coords := [ x := -500.0, y := 500.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_D", cell_types := {"cell_D"}, amount := 10.0, coords := [ x := 500.0, y := 500.0, r := 100.0 ] ]);
+
+//---
+timer([ name := "t_plating", start := 50.0, stop := 10000.0, period := 25.0 ]);
+
+cell_plating([ name := "cpl_A"
+	, timer := "t_plating"
+	, gate := "cell_A"
+	, take := 0.5
+	, put := 0.5
+	, coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+]);
+
+cell_plating([ name := "cpl_B"
+	, timer := "t_plating"
+	, gate := "cell_B"
+	, take_params := { 0.5, 0.1 }
+	, put_params := { 0.5, 0.1 }
+	, coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+]);
+
+cell_plating([ name := "cpl_C"
+	, timer := "t_plating"
+	, gate := "cell_C"
+	, take_dist := [ type := "uniform", params := {0.1, 0.9} ]
+	, put_dist := [ type := "uniform", params := {0.1, 0.9} ]
+	, coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+]);
+
+distribution([ name := "dist_takeD", type := "uniform", params := {0.4, 0.6} ]);
+cell_plating([ name := "cpl_D"
+	, timer := "t_plating"
+	, gate := "cell_D"
+	, take_dist := "dist_takeD"
+	, put_dist := "dist_takeD"
+	, coords := [ x := 0.0, y := 0.0, r := 300.0 ]
+]);
+
+
+//--------------------VISUALS
+cell_colour([ name := "ccol_A", gate := "cell_A", rgb := _blue ]);
+cell_colour([ name := "ccol_B", gate := "cell_B", rgb := _yellow ]);
+cell_colour([ name := "ccol_C", gate := "cell_C", rgb := _green ]);
+cell_colour([ name := "ccol_D", gate := "cell_D", rgb := _red ]);
+
+//---
+cells_plot([ name := "cplt_totals", fields := { "cell_A", "cell_B", "cell_C", "cell_D" }, stats := {"sum"} ]);

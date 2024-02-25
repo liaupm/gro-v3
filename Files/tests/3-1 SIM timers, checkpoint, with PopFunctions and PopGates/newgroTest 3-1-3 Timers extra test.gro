@@ -1,0 +1,52 @@
+/*Additional test for conditional timers */
+
+include gro3
+global_params([ seed := 123242, show_plots := true ]);
+
+
+//---cell types
+cell_type([ name := "cell_A", strain := "_str_wt" ]);
+cell_type([ name := "cell_B", strain := "_str_nogrowth" ]);
+
+
+//------------------------ WORLD CONTROL
+cell_placer([ name := "cp_A", cell_types := {"cell_A"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+population_stat([ name := "stat_numA", input := "cell_A", stats := {"sum"} ]);
+population_qgate([ name := "pga_numA", input := "stat_numA", value := 100.0, operator := ">=" ]);
+
+
+timer([ name := "t_B"
+	, gate := "pga_numA"
+	, mode := "change"
+	, start := 50.0
+	, stop := -1.0
+	, period := 0.1
+]);
+
+cell_placer([ name := "cp_B", timer := "t_B", cell_types := {"cell_B"}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 300.0 ] ]);
+
+timer([ name := "t_plating"
+	, gate := "pga_numA"
+	, mode := "always"
+	, start := 50.0
+	, stop := -1.0
+	, period := 0.1
+]);
+
+cell_plating([ name := "cpl_A"
+	, timer := "t_plating"
+	, gate := "cell_A"
+	, take := 0.5
+	, put := 0.0
+	, coords := [ x := 0.0, y := 0.0, r := 400.0 ]
+]);
+
+
+//------------------------VISUALS
+cell_colour([ name := "ccol_green", gate := "cell_A", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "cell_B", rgb := _red ]);
+
+cells_plot([ name := "cplt_numA", pop_fields := { "stat_numA" } ]);
+cells_plot([ name := "cplt_numga", pop_fields := { "pga_numA" } ]);
+cells_plot([ name := "cplt_B", fields := { "cell_B" }, stats := {"sum"} ]);

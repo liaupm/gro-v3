@@ -1,0 +1,62 @@
+/* To test the amount, amount_params and amount_dist fields of cell_placer 
+Four cell types are placed, A deterministic, B normal, C custom as dictionary, D custom as element */
+
+include gro3
+global_params([ seed := 123242, show_plots := true ]);
+
+
+//-------------------CELL TYPES
+strain([ name := "str_same"
+	, growth_rate := { 0.0, 0.0 }
+	, ini_vol := 2.355
+	, division_vol := { 3.14, 0.0 }
+]);
+
+cell_type([ name := "cell_A", strain := "str_same" ]);
+cell_type([ name := "cell_B", strain := "str_same" ]);
+cell_type([ name := "cell_C", strain := "str_same" ]);
+cell_type([ name := "cell_D", strain := "str_same" ]);
+
+
+//-----------------------PLACER
+timer([ name := "t_placer", start := 0.0, stop := 10000.0, period := 50.0 ]);
+
+cell_placer([ name := "cp_A"
+	, timer := "t_placer"
+	, cell_types := {"cell_A"}
+	, amount := 10.0
+	, coords := [ x := -300.0, y := -300.0, r := 100.0 ]
+]);
+
+cell_placer([ name := "cp_B"
+	, timer := "t_placer"
+	, cell_types := {"cell_B"}
+	, amount_params := { 10.0, 1.0 }
+	, coords := [ x := 300.0, y := -300.0, r := 100.0 ]
+]);
+
+//myDist := [ type := "uniform", params := {10.0, 10.0} ];
+cell_placer([ name := "cp_C"
+	, timer := "t_placer"
+	, cell_types := {"cell_C"}
+	, amount_dist := [ type := "uniform", params := {10.0, 10.0} ]
+	, coords := [ x := -300.0, y := 300.0, r := 100.0 ]
+]);
+
+distribution([ name := "dist_D", type := "uniform", params := {9.0, 11.0} ]);
+cell_placer([ name := "cp_D"
+	, timer := "t_placer"
+	, cell_types := {"cell_D"}
+	, amount_dist := "dist_D"
+	, coords := [ x := 300.0, y := 300.0, r := 100.0 ]
+]);
+
+
+//--------------------VISUALS
+cell_colour([ name := "ccol_A", gate := "cell_A", rgb := _blue ]);
+cell_colour([ name := "ccol_B", gate := "cell_B", rgb := _yellow ]);
+cell_colour([ name := "ccol_C", gate := "cell_C", rgb := _green ]);
+cell_colour([ name := "ccol_D", gate := "cell_D", rgb := _red ]);
+
+//---
+cells_plot([ name := "cplt_totals", fields := { "cell_A", "cell_B", "cell_C", "cell_D" }, stats := {"sum"} ]);

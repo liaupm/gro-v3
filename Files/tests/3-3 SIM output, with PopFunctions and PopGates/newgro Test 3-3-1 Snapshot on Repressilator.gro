@@ -1,0 +1,31 @@
+/*to test snapshot with all its fields
+To test:
+ - Try different folder and file names
+ - Try the different formats (png, jpg, tif, tiff and bmp)
+ - COmment out to test the default values
+ - Check that snapshots at time 0.0 are saved properly
+*/
+
+include tests/0-presets/preset_Repressilator
+
+//params
+t_act := 20.0;
+t_act_var := 2.0;
+t_deg := 2.0;
+t_deg_var := 2.0;
+
+global_params([ seed := 1234 ]);
+
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 100.0 ]);
+
+
+//output
+timer([ name := "t_snap", start := 0.0, stop := 1000.0, period := 1.0 ]);
+
+snapshot([ name := "img_A"
+	, timer := "t_snap"
+	, path := "C:/swLIA/pruebas/newGro3"
+	//, folder := "gro_images"
+	//, file_name := "a"
+	//, format := ".tif" //".png", ".jpg", ".bmp", ".tif", ".tiff"
+]);

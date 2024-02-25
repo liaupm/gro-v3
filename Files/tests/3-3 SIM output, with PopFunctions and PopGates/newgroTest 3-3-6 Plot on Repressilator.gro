@@ -1,0 +1,60 @@
+/* To test timer, path, folder, file_name, format, historic_size and colours of plot
+To test:
+ - Try different file names, paths and formats. Comment out to test the defaults
+ - Try different timers and check time 0
+ - Use custom colous, compelte and incomplete to test the defaults
+ - Check the legend
+ - Check that the line of esternal stat and auto stat match
+ - Check that the images are saved only if a timer is assigned
+ - It is normal that the actual saving time does not match that of the timer exactly
+*/
+
+include tests/0-presets/preset_Repressilator
+
+common_path := "C:/swLIA/pruebas/newGro3";
+
+global_params([ seed := 1234, show_plots := true ]);
+
+cell_placer([ name := "cp_ABC", cell_types := {"cell_ABC"}, amount := 100.0 ]);
+
+
+//---OUTPUT
+pop_stat([ name := "stat_A", input := "prot_A", stats := "avg" ]);
+
+timer([ name := "t_output", start := 0.0, stop := 5000.0, period := 10.0 ]);
+
+plot([ name := "cplt_A"
+	, timer := "t_output"
+	, pop_fields := {"stat_A"} 
+	, fields := { "prot_A" }
+	, path := common_path 
+	, folder := "gro_plots"
+	, file_name := "plotA"
+	, format := ".png" //".png", ".jpg", ".bmp"
+]);
+
+plot([ name := "cplt_B"
+	, timer := "t_output"
+	, fields := { "prot_B" }
+	, path := common_path 
+	, folder := "gro_plots"
+	, file_name := "plotB"
+	, format := ".jpg" //".png", ".jpg", ".bmp"
+]);
+
+plot([ name := "cplt_C"
+	//, timer := "t_output"
+	, fields := { "prot_C" }
+]);
+
+plot([ name := "cplt_all"
+	, timer := "t_output"
+	, fields := { "prot_A", "prot_B", "prot_C" }
+	, historic_size := 1000
+	//, colours := { "#eb345b" }
+	, colours := { "#eb345b", "#31184d" }
+	, path := common_path 
+	, folder := "gro_plots"
+	, file_name := "plotABC"
+	, format := ".bmp" //".png", ".jpg", ".bmp"
+]);

@@ -1,0 +1,45 @@
+/* To test the cell_types, cell_probs and mix fields of cell_placer 
+Three cell types are placed. The composition must converge to the given probabilities (no growth). 
+To test:
+ -Use different cell_probs, complete and incomplete, adding up to 1 and not, and comment it to get the default (same probs)
+ -Comment and uncomment mix 
+ -May be used to test coords too, or even amount
+*/
+
+include gro3
+global_params([ seed := 123242, show_plots := true ]);
+
+
+//-------------------CELL TYPES
+strain([ name := "str_same"
+	, growth_rate := { 0.0, 0.0 }
+	, ini_vol := 2.355
+	, division_vol := 3.14
+]);
+
+cell_type([ name := "cell_A", strain := "str_same" ]);
+cell_type([ name := "cell_B", strain := "str_same" ]);
+cell_type([ name := "cell_C", strain := "str_same" ]);
+
+
+//-----------------------PLACER
+timer([ name := "t_placer", start := 0.0, stop := 10000.0, period := 50.0 ]);
+
+cell_placer([ name := "cp_ABC"
+	, timer := "t_placer"
+	, cell_types := {"cell_A", "cell_B", "cell_C"}
+	, cell_probs := { 4.0, 2.0 }
+	, mix := true
+	, amount := 10.0
+	, coords := [ r := 100.0 ]
+]);
+
+
+//--------------------VISUALS
+cell_colour([ name := "ccol_A", gate := "cell_A", rgb := _blue ]);
+cell_colour([ name := "ccol_B", gate := "cell_B", rgb := _yellow ]);
+cell_colour([ name := "ccol_C", gate := "cell_C", rgb := _green ]);
+
+//---
+cells_plot([ name := "cplt_totals", fields := {"cell_A", "cell_B", "cell_C"}, stats := {"sum"} ]);
+cells_plot([ name := "cplt_fractions", fields := {"cell_A", "cell_B", "cell_C"}, stats := {"avg"} ]);
