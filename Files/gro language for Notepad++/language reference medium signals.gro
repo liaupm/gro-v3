@@ -1,0 +1,17 @@
+
+//----- GRID
+grid([ unit_size := 5, ini_size := 1000, delta_size := 100 ]);
+
+//----- SIGNAL
+signal([ name := "s_"
+	, kdiff := 0.1
+	, kdeg := 0.0
+	, conc_threshold := 0.000001
+	, colour := _magenta
+	, colour_sat := 100.0 
+]);
+
+signal([ name := "s_", kdiff := 0.1, kdeg := 0.0, conc_threshold := 0.000001, colour := _magenta, colour_sat := 100.0 ]);
+
+signal([ name := "s_", kdiff := 0.1, kdeg := 0.0, colour := _magenta ]);
+

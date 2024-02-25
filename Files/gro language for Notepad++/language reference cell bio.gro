@@ -1,0 +1,288 @@
+//------------------------- GENE EXPRESSION
+//----- MOLECULE
+molecule([ name := "mol_"
+	, rnd := ""
+	, degradation_rnd := ""
+	, time_funs := {}
+	, times := { -20.0, 20.0 }
+	, time_vars := { 0.0, 0.0 }
+	, thresholds := { 1.0 }
+	, symmetric_rnd := true
+]);
+
+molecule([ name := "mol_", rnd := "", degradation_rnd := "", time_funs := {}, times := { -20.0, 20.0 }, time_vars := { 0.0, 0.0 }, thresholds := { 1.0 }, symmetric_rnd := true ]);
+
+molecule([ name := "mol_", times := { -20.0, 20.0 }, times_var := { 0.0, 0.0 } ]);
+
+
+//----- REGULATION 
+regulation([ name := "reg_"
+	, gate := "_ga_true"
+	, dosage_fun := ""
+	, rnd := ""
+	, acti_on_fun := ""
+	, acti_on := 1.0
+	, acti_off_fun := ""
+	, acti_off := 0.0
+	, auto_division := false
+	, acti_marker := ""
+]);
+
+regulation([ name := "reg_", gate := "_ga_true", dosage_fun := "", rnd := "", acti_on_fun := "", acti_on := 1.0, acti_off_fun := "", acti_off := 0.0, auto_division := false, acti_marker := "" ]);
+
+regulation([ name := "reg_", gate := "_ga_true", acti_on := 1.0, acti_off := 0.0 ]);
+
+
+//----- OPERON
+operon([ name := "op_"
+	, regulation := ""
+	, gate := "_ga_true"
+	, output := {} 
+	, dosage := false
+	, acti_marker := ""
+]);
+
+operon([ name := "op_", regulation := "", gate := "_ga_true", output := {} , dosage := false, acti_marker := "" ]);
+
+operon([ name := "op_", gate := "_ga_true", output := {} ]);
+
+
+
+
+//------------------------- METABOLISM
+//----- FLUX
+flux([ name := "flux_"
+	, signal := "_biomass"
+	, gate := "_ga_true"
+	, sgate := "_ga_true"
+	, output := {}
+	, amount_fun := ""
+	, amount_rnd := ""
+	, threshold_rnd := ""
+	, type := "always" //"always", "lysis"
+	, amount := 0.0 //{0.0, 0.0}
+	, threshold := 0.0 //{ 0.0, 0.0}
+	, activation := 1.0
+	, direction := "both" //0
+	, inverted := false
+	, absolute := false
+	, threshold_marker := ""
+]);
+
+flux([ name := "flux_", signal := "_biomass", gate := "_ga_true", sgate := "_ga_true", output := {}, amount_fun := "", amount_rnd := "", threshold_rnd := ""
+	, type := "always", amount := 0.0, threshold := 0.0, activation := 1.0, direction := "both", inverted := false, absolute := false, threshold_marker := "" ]);
+	
+flux([ name := "flux_", signal := "_biomass", gate := "_ga_true", output := {}, threshold := 0.0, amount := 0.0 ]);
+
+
+
+
+//------------------------- REPLICATION
+//----- COPY CONTROL
+copy_control([ name := "cc_"
+	, gate := "_ga_true"
+	, w_rnd := ""
+	, w := 0.01
+	, active_marker := ""
+	, w_marker := ""
+]);
+
+copy_control([ name := "cc_", gate := "_ga_true", w_rnd := "", w := 0.01, active_marker := "", w_marker := "" ]);
+
+copy_control([ name := "cc_", gate := "_ga_true", w := 0.01 ]);
+
+
+//----- ORIV
+oriv([ name := "ov_"
+	, gate := "_ga_true"
+	, copy_controls := {}
+	, rate_fun := ""
+	, vmax_rnd := ""
+	, w_rnd := ""
+	, vmax := 10.0
+	, w := 0.1
+	, eclipse := true
+	, mutation_keys := {}
+	, eclipse_marker := ""
+	, event := ""
+	, vmax_marker := ""
+	, w_marker := ""
+]);
+
+oriv([ name := "ov_", gate := "_ga_true", rate_fun := "", copy_controls := {}, rate_fun := "", vmax_rnd := "", w_rnd := "", vmax := 10.0, w := 0.1, eclipse := true, mutation_keys := {}, eclipse_marker := "", event := "", vmax_marker := "", w_marker := "" ]);
+
+oriv([ name := "ov_", gate := "_ga_true", copy_controls := {}, vmax := 10.0, w := 0.1 ]);
+
+
+//----- PARTITION SYSTEM
+partition([ name := "part_"
+	, gate := "_ga_true"
+	, fraction_fun := ""
+	, p_fun := ""
+	, fraction := 0.5 // {0.5, 0.0}, fraction_dist := ""
+	, p := 0.5
+	, vol_scaling := true
+	, fraction_marker := ""
+	, p_marker := ""
+]);
+
+partition([ name := "part_", gate := "_ga_true", fraction_fun := "", p_fun := "", fraction := 0.5, p := 0.5, vol_scaling := true, fraction_marker := "", p_marker := "" ]);
+
+partition([ name := "part_", gate := "_ga_true" ]);
+
+
+
+
+//------------------------- MUTATION
+//----- MUTATION
+mutation([ name := "mut_"
+	, plasmids := {}
+	, amounts := {}
+	, event := ""
+]);
+
+mutation([ name := "mut_", plasmids := {}, amounts := {}, event := "" ]);
+
+mutation([ name := "mut_", plasmids := {}, amounts := {} ]);
+
+
+//----- MUTATION PROCESS
+mutation_process([ name := "mutp_"
+	, gate := "_ga_true"
+	, mutations := {}
+	, rate_fun := ""
+	, rate_rnd := ""
+	, rate := 1.0 
+	, mutation_probs := {}
+	, eclipse := false
+	, event := ""
+	, rate_marker := ""
+]);
+
+mutation_process([ name := "mutp_", gate := "_ga_true", mutations := {}, rate_fun := "", rate_rnd := "", rate := 1.0 , mutation_probs := {}, eclipse := false, event := "", rate_marker := "" ]);
+
+mutation_process([ name := "mutp_", gate := "_ga_true", mutations := {}, rate := 1.0 ]);
+
+
+
+
+//------------------------- CONJUGATION
+//----- PILUS
+pilus([ name := "pil_"
+	, donor_gate := "_ga_true"
+	, recipient_gate := "_ga_true"
+	, donor_fun := ""
+	, recipient_fun := ""
+	, max_rate_rnd := ""
+	, neighbours_w_rnd := ""
+	, max_rate := 0.01 //{ 0.0, 0.0 }
+	, neighbours_w := 0.8 //{ 0.8, 0.0 }
+	, vol_scaling := false
+	, max_rate_marker := ""
+	, neighbours_w_marker := ""
+	, rate_marker := ""
+]);
+
+pilus([ name := "pil_", donor_gate := "_ga_true", recipient_gate := "_ga_true", donor_fun := "", recipient_fun := "", max_rate_rnd := "", neighbours_w_rnd := "", max_rate := 0.01, neighbours_w := 0.8, vol_scaling := false, max_rate_marker := "", neighbours_w_marker := "", rate_marker := "" ]);
+	
+pilus([ name := "pil_", donor_gate := "_ga_true", recipient_gate := "_ga_true", max_rate := 0.001 ]);
+
+
+//----- ORIT
+orit([ name := "ot_"
+	, pilus := ""
+	, donor_gate := "_ga_true"
+	, recipient_gate := "_ga_true"
+	, rate_w_fun := ""
+	, rate_w_rnd := ""
+	, rate_w := 1.0
+	, eclipse := false
+	, copy_dependent := false
+	, mutation_keys := {}
+	, donor_event := ""
+	, recipient_event := ""
+	, rate_w_marker := ""
+]);
+
+orit([ name := "ot_", pilus := "", donor_gate := "_ga_true", recipient_gate := "_ga_true", rate_w_fun := "", rate_w_rnd := "", rate_w := 1.0, eclipse := false, copy_dependent := false, mutation_keys := {}, donor_event := "", recipient_event := "", rate_w_marker := "" ]);
+
+orit([ name := "ot_", pilus := "", donor_gate := "_ga_true", recipient_gate := "_ga_true" ]);
+
+
+
+
+//------------------------- HOLDERS
+//----- BPLASMID
+bplasmid([ name := "bp_"
+	, operons := {}
+	, orits := {}
+	, loss_prob_fun := ""
+	, loss_prob_rnd := ""
+	, loss_prob := 0.0
+	, repli_mutations := {}
+	, repli_mut_keys := {}
+	, loss_prob_marker := ""
+]);
+
+bplasmid([ name := "bp_", operons := {}, orits := {}, loss_prob_fun := "", loss_prob_rnd := "", loss_prob := 0.0, repli_mutations := {}, repli_mut_keys := {}, loss_prob_marker := "" ]);
+
+bplasmid([ name := "bp_", operons := {}, orits := {} ]);
+
+
+//----- QPLASMID
+qplasmid([ name := "qp_"
+	, operons := {}
+	, orits := {}
+	, orivs := {}
+	, copy_controls := {}
+	, partition := ""
+	, repli_mutations := {}
+	, eclipse_fun := ""
+	, copy_num := 1.0 //{1.0, 0.0} //copy_num_dist := ""
+	, eclipse := 0.0 //{0.0, 0.0} //eclipse_dist := ""
+	, repli_mut_keys := {}
+	, eclipse_marker := ""
+]);
+
+qplasmid([ name := "qp_", operons := {}, orits := {}, orivs := {}, copy_controls := {}, partition := "", repli_mutations := {}, eclipse_fun := "", copy_num := 1.0, eclipse := 0.0, repli_mut_keys := {}, eclipse_marker := "" ]);
+
+qplasmid([ name := "qp_", operons := {}, orivs := {}, copy_controls := {}, partition := "", copy_num := 1.0, eclipse := 0.0 ]);
+
+
+//----- STRAIN
+strain([ name := "str_"
+	, division_gate := "_ga_true"
+	, death_gate := "_ga_true"
+	, growth_rate_fun := ""
+	, growth_rate_rnd := ""
+	, growth_rate := { 0.03465735903, 0.0 }
+	, ini_vol := { 1.57, 3.14 } //ini_vol_dist := ""
+	, division_vol := { 3.14, 0.070711 } //division_vol_dist := ""
+	, division_fraction := { 0.5,  0.05 } //division_fraction_dist := ""
+	, division_rotation := { -0.125, 0.125 } //division_rotation_dist := ""
+	, death_threshold := 0.0
+	, negative_growth := true
+	, growth_correction := true
+]);
+
+strain([ name := "str_", division_gate := "_ga_true", death_gate := "_ga_true", growth_rate_fun := "", growth_rate_rnd := ""
+, growth_rate := { 0.03465735903, 0.0 }, ini_vol := { 1.57, 3.14 }, division_vol := { 3.14, 0.070711 }, division_fraction := { 0.5,  0.05 },  division_rotation := { -0.125, 0.125 }, death_threshold := 0.0, negative_growth := true, growth_correction := true ]);
+	
+strain([ name := "str_", death_gate := "_ga_true", growth_rate := { 0.03465735903, 0.0 }, death_threshold := 0.0 ]);	
+
+
+//----- CELL TYPE
+cell_type([ name := "cell_"
+	, strain := "_str_wt"
+	, molecules := {}
+	, bplasmids := {}
+	, qplasmids := {}
+	, qplasmid_amounts := {}
+	, qplasmid_vars := {}
+	, qplasmid_dists := { "" }
+	, qplasmids_as_concs := true
+]);
+
+cell_type([ name := "cell_", strain := "_str_wt", molecules := {}, bplasmids := {}, qplasmids := {}, qplasmid_amounts := {}, qplasmid_vars := {}, qplasmid_dists := { "" }, qplasmids_as_concs := true ]);
+
+cell_type([ name := "cell_", strain := "_str_wt", molecules := {}, bplasmids := {}, qplasmids := {}, qplasmid_amounts := {} ]);

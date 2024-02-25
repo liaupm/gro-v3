@@ -1,0 +1,235 @@
+//----- GLOBAL PARAMS
+global_params([ seed := 1234
+	, seed_offset := 11
+	, step_size := 0.1
+	, sensitivity := 0.01
+	, cells_per_thread := 10000
+	, max_threads := 10
+	, theme := _dark_theme //_bright_theme, _dark_theme
+	, auto_zoom := false
+	, show_plots := false
+	, render_signals := true
+	, batch_mode := false 
+	, show_performance := false
+]);
+
+global_params([ seed := 1234, seed_offset := 11, step_size := 0.1, sensitivity := 0.01, cells_per_thread := 10000, max_threads := 10, theme := _dark_theme, auto_zoom := false, show_plots := false, render_signals := true, batch_mode := false, show_performance := false ]);
+
+global_params([ seed := 1234, seed_offset := 11, show_plots := false, batch_mode := false ]);
+
+
+//----- THEME
+newTheme := [ background := "#000000"
+	, cell_outline := "#444444"
+	, cell_selected := "#880000"
+	, message := "#ffffff"
+	, mouse := "#ffffff"
+];
+
+newTheme := [ background := "#000000", cell_outline := "#444444", cell_selected := "#880000", message := "#ffffff", mouse := "#ffffff" ];
+
+
+//----- COORDS
+myCoords := [ x := 0.0
+	, y := 0.0
+	, r := 0.0
+	, mode := "cartesian" //"cartesian", "polar"
+];
+
+myCoords := [ x := 0.0, y := 0.0, r := 0.0, mode := "cartesian" ];
+
+myCoords := [ x := 0.0, y := 0.0, r := 0.0 ];
+
+
+
+
+//----- POPULATION STAT 
+pop_stat([ name := "stat_"
+	, gate := "_ga_true"
+	, input := ""
+	, stats := "avg" //{"sum", "avg", "stddev", "min", "max"} or "avg", "classic", "range", "all"
+	, auto_vol := "none" //"none", "division", "prodcut"
+]);
+
+pop_stat([ name := "stat_", gate := "_ga_true", input := "", stats := "avg", auto_vol := "none" ]);
+
+pop_stat([ name := "stat_", input := "" ]);
+
+
+//------ POPULATION FUNCTION
+pop_function([ name := "pfun_"
+	, type := "sum" //"sum", "product", "exp", "log", "sigmoid", "hill"
+	, input := {}
+	, params := {1.0}
+	, min := _minus_inf
+	, max := _inf
+	, auto_vol := "none" //"none", "division", "prodcut"
+]);
+
+pop_function([ name := "pfun_", type := "sum", input := {}, params := {1.0}, min := _minus_inf, max := _inf, auto_vol := "none" ]);
+
+pop_function([ name := "pfun_", type := "sum", input := {}, params := {1.0} ]);
+
+
+//------ POPULATION QGATE
+pop_qgate([ name := "qpga_"
+	, input := ""
+	, operator := ">=" //">", ">=", "<", "<=", "=", "!="
+	, value := 1.0
+]);
+
+pop_qgate([ name := "qpga_", input := "", operator := ">=", value := 1.0 ]);
+
+pop_qgate([ name := "qpga_", input := "" ]);
+
+
+//------ POPULATION BGATE
+pop_bgate([ name := "bpga_"
+	, input := {""}
+	, type := "AND" //"TRUE","FALSE", "YES", "NOT", "AND", "OR", "XOR", "NAND", "NOR", "XNOR"
+]);
+
+pop_bgate([ name := "bpga_", input := {""}, type := "AND" ]);
+
+pop_bgate([ name := "bpga_", input := {""} ]);
+
+
+
+
+//------ TIMER
+timer([ name := "t_"
+	, gate := "_pga_true"
+	, mode := "always" //"always", "once", "change", "trigger"
+	, start := 0.0
+	, stop := -1.0
+	, period := 0.1
+	, is_rnd := false
+	, min_period := 0.0
+	, ignore_start := false
+]);
+
+timer([ name := "t_", gate := "_pga_true", mode := "always", start := 0.0, stop := -1.0, period := 0.1, is_rnd := false, min_period := 0.0, ignore_start := false ]);
+
+timer([ name := "t_", start := 0.0, stop := -1.0, period := 0.1 ]);
+
+
+//------ CHECKPOINT
+checkpoint([ name := "stop_"
+	, timer := ""
+	, message := ""
+]);
+
+checkpoint([ name := "stop_", timer := "", message := "" ]);
+
+checkpoint([ name := "stop_", timer := "" ]);
+
+
+
+
+//------ CELL PLACER
+cell_placer([ name := "cp_"
+	, timer := "_t_start"
+	, cell_types := {""}
+	, cell_probs := {}
+	, mixed := false
+	, amount := 1.0 //amount_params := { 1.0, 0.0 }, amount_dist := [ type := "normal", params := {1.0, 0.0} ]
+	, coords := [ x := 0.0, y := 0.0, r := 0.0, mode := "cartesian" ] //"cartesian", "polar"
+]);
+
+cell_placer([ name := "cp_", timer := "_t_start", cell_types := {""}, cell_probs := {}, mixed := false, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0, mode := "cartesian" ] ]);
+
+cell_placer([ name := "cp_", cell_types := {""}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+
+
+//------ CELL PLATING
+cell_plating([ name := "cpt_"
+	, timer := "_t_start"
+	, gate := "_ga_true"
+	, take := 0.9 //take_params := { 0.9, 0.0 } , take_dist := [ type := "normal", params := {0.9, 0.0} ]
+	, put := 0.0 //put_params := { 0.0, 0.0 }, put_dist := [ type := "normal", params := {1.0, 0.0} ]
+	, old_coords := [ x := 0.0, y := 0.0, r := 10E+9 ] //"cartesian", "polar"
+	, coords := [ x := 0.0, y := 0.0, r := 0.0, mode := "cartesian" ] //"cartesian", "polar"
+]);
+
+cell_plating([ name := "cpt_", timer := "_t_start", gate := "_ga_true", take := 0.9, put := 0.0, old_coords := [ x := 0.0, y := 0.0, r := 10E+9 ], coords := [ x := 0.0, y := 0.0, r := 0.0, mode := "cartesian" ] ]);
+
+cell_plating([ name := "cpt_", timer := "_t_start", gate := "_ga_true", take := 0.9, put := 0.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+
+
+//------ SIGNAL PLACER
+signal_placer([ name := "sp_"
+	, timer := "_t_start"
+	, signals := {""}
+	, signal_probs := {}
+	, mixed := false
+	, mode := "add" //"add", "set", "full"
+	, amount := 1000.0 //amount_params := { 1000.0, 0.0 }, , amount_dist := [ type := "normal", params := {1000.0, 0.0} ]
+	, sources := 1.0 //sources_params := { 1.0, 0.0 }, sources_dist := [ type := "normal", params := {1.0, 0.0} ]
+	, coords := [ x := 0.0, y := 0.0, r := 0.0, mode := "cartesian" ] //"cartesian", "polar"
+	, area := [ x1 := 0.0, x2 := 0.0, y1 := 0.0, y2 := 0.0 ]
+]);
+
+signal_placer([ name := "sp_", timer := "_t_start", signals := {""}, signal_probs := {}, mixed := false, mode := "add", amount := 1.0, sources := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0, mode := "cartesian" ], area := [ x1 := 0.0, x2 := 0.0, y1 := 0.0, y2 := 0.0 ] ]);
+
+signal_placer([ name := "sp_", signals := {""}, amount := 1.0, coords := [ x := 0.0, y := 0.0, r := 0.0 ] ]);
+
+
+
+
+//------ SNAPSHOT
+snapshot([ name := "img_"
+	, timer := "_t_every_step"
+	, path := "C:"
+	, folder := "gro_snapshots"
+	, file_name := ""
+	, format := ".png" //".png", ".jpg", ".bmp", ".tif", ".tiff"
+]);
+
+snapshot([ name := "img_", timer := "_t_every_step", path := "C:", folder := "gro_images", file_name := "", format := ".png" ]);
+
+snapshot([ name := "img_", timer := "_t_every_step", path := "C:" ]);
+
+
+//------ CELLS FILE
+out_file([ name := "file_"
+	, timer := "_t_every_step"
+	, pop_fields := {}
+	, fields := {}
+	, gate := "_ga_true"
+	, mode := "both" //"individual", "population", "both"
+	, ancestry := false
+	, include_elems := "none" //"none", "classic", "all"
+	, stats := "avg" //{"sum", "avg", "stddev", "min", "max"} or "avg", "classic", "range", "all"
+	, auto_vol := "none" //division", "product"
+	, path := "C:" 
+	, folder := "gro_output"
+	, file_name := ""
+	, format := ".csv" //".csv", ".tsv"
+	, precision := 8
+]);
+
+out_file([ name := "file_", timer := "_t_every_step", pop_fields := {}, fields := {}, gate := "_ga_true", mode := "both", ancestry := false include_elems := "none", stats := "avg", auto_vol := "none", path := "C:" , folder := "gro_output", file_name := "", format := ".csv", precision := 8 ]);
+
+out_file([ name := "file_", timer := "_t_every_step", pop_fields := {}, fields := {}, path := "C:" ]);
+
+
+//------ CELLS PLOT
+plot([ name := "plot_"
+	, timer := "_t_every_step"
+	, pop_fields := {}
+	, fields := {}
+	, gate := "_ga_true"
+	, stats := "avg" //{"sum", "avg", "stddev", "min", "max"} or "avg", "classic", "range", "all"
+	, auto_vol := "none" //division", "product"
+	, colours := {}
+	, historic_size := 10000
+	, path := "C:" 
+	, folder := "gro_plots"
+	, file_name := ""
+	, format := ".png" //".png", ".jpg", ".bmp"
+	, precision := -1
+]);
+
+plot([ name := "plot_", timer := "_t_every_step", pop_fields := {}, fields := {}, gate := "_ga_true", stats := "avg", auto_vol := "none", colours := {}, historic_size := 10000, path := "C:", folder := "gro_plots", file_name := "", format := ".png", precision := -1 ]);
+
+plot([ name := "plot_", pop_fields := {}, fields := {}, gate := "_ga_true", stats := "avg" ]);

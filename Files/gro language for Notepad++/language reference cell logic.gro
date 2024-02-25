@@ -1,0 +1,120 @@
+//---DISTRIBUTION
+myDist := [ type := "normal" //"normal", "uniform", "exponential"
+	, params := { 0.0,1.0 }
+];
+
+myDist := [ type := "normal", params := { 0.0,1.0 } ];
+
+distribution ([ name := "dist_"
+	, type := "normal" //"normal", "uniform", "exponential"
+	, params := {0.0, 1.0}
+]);
+
+distribution ([ name := "dist_", type := "normal", params := {0.0, 1.0} ]);
+
+
+//----- RANDOMNESS
+randomness([ name := "rnd_"
+	, dist_type := "normal" //normal, uniform, exponential
+	, params := { 0.0, 1.0 }
+	, inertia := 0.9
+	, inheritance := 0.9
+	, sampling_time := 20.0
+	, rnd_sampling := true
+	, correction := true
+]);
+
+randomness([ name := "rnd_", dist_type := "normal", params := { 0.0, 1.0 }, inertia := 0.9, inheritance := 0.9, sampling_time := 20.0, rnd_sampling := true, correction := true ]);
+
+randomness([ name := "rnd_", dist_type := "normal", inertia := 0.9, inheritance := 0.9 ]);
+
+
+//------ FUNCTION
+function([ name := "fun_"
+	, type := "sum" //"const", "min", "max", "abs", "exp", "log", "sum", "product", "sigmoid", "hill", "combi_sum", "sat_exp", "exp_product"
+	, input := {}
+	, params := {1.0}
+	, rnd := ""
+	, rnd_params := {}
+	, min := _minus_inf
+	, max := _inf
+	, auto_vol := "none" //"product", "division"
+	, precision := -1
+]);
+
+function([ name := "fun_", type := "sum", input := {}, params := {1.0}, rnd := "", rnd_params := {}, min := _minus_inf, max := _inf, auto_vol := "none", precision := -1 ]);
+
+function([ name := "fun_", type := "sum", input := {}, params := {1.0}, auto_vol := "none" ]);
+
+
+//------ BGATE
+bgate([ name := "bga_"
+	, input := {""}
+	, type := "AND" //"TRUE","FALSE", "YES", "NOT", "AND", "OR", "XOR", "NAND", "NOR", "XNOR"
+]);
+
+bgate([ name := "bga_", input := {""}, type := "AND" ]);
+
+bgate([ name := "bga_", input := {""} ]);
+
+
+//------ QGATE
+qgate([ name := "qga_"
+	, input := ""
+	, operator := ">=" //">", ">=", "<", "<=", "=", "!="
+	, value := 1.0
+]);
+
+qgate([ name := "qga_", input := "", operator := ">=", value := 1.0 ]);
+
+qgate([ name := "qga_", input := "" ]);
+
+
+//------ ODE
+ode([ name := "ode_"
+	, input := ""
+	, gate := "_ga_true"
+	, ini_value_fun := "fun_"
+	, ini_value := 0.0 //ini_value_params := {0.0, 0.0} / ini_value_dist := [ type := "normal", params := {0.0, 0.0} ]
+	, scale := 1.0
+	, split_fun := ""
+	, split := 0.5 //split_params := {0.5, 0.0}
+	, split_scale := 1.0
+	, binomial_split := false
+	, volume_split := true
+	, split_marker := ""
+]);
+
+ode([ name := "ode_", input := "", gate := "_ga_true", ini_value_fun := "fun_", ini_value := 0.0, scale := 1.0, split_fun := "", split := 0.5, split_scale := 1.0, binomial_split := false, volume_split := true, split_marker := "" ]);
+
+ode([ name := "ode_", input := "", ini_value := 0.0 ]);
+
+
+//------ HISTORIC
+historic([ name := "h_"
+	, target := ""
+	, ini_value_fun := ""
+	, delay := 0.1
+]);
+
+historic([ name := "h_", target := "", , ini_value_fun := "", delay := 0.1 ]);
+
+historic([ name := "h_", target := "", delay := 0.1 ]);
+
+
+//------ CELL COLOUR
+cell_colour([ name := "ccol_"
+	, gate := "_ga_true"
+	, target := ""
+	, intensity_rnd := ""
+	, delta_rnd := ""
+	, mode := "absolute" //"absolute", "delta"
+	, rgb := _green
+	, scale := 1.0
+	, intensity := 1.0 //{ 1.0, 0.0 }
+	, delta := { 0.01, 0.0 }
+]);
+
+cell_colour([ name := "ccol_", gate := "_ga_true", target := "", intensity_rnd := "", delta_rnd := "", mode := "absolute", rgb := _green, scale := 1.0, intensity := { 1.0, 0.0 }, delta := { 0.01, 0.0 } ]);
+
+cell_colour([ name := "ccol_", gate := "_ga_true", rgb := _green ]);

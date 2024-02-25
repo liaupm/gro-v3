@@ -1,0 +1,130 @@
+//////////////////////////////////////////// ELEMENTS ///////////////////////////////////////////////////////////////
+
+distribution randomness rnd function ode historic
+gate bgate b_gate qgate q_gate
+cell_colour cell_color
+
+
+molecule molecules protein proteins
+regulation promoter operon operons 
+flux metabolite
+
+pilus oriT orit ori_t oriTs orits
+
+copy_control copy_controls
+oriV oriv ori_v oriVs orivs 
+partition partition_system
+mutation mutations mutation_process
+
+plasmid plasmids
+bplasmid bplasmids b_plasmid b_plasmids 
+qplasmid qplasmids q_plasmid qplasmids
+strain cell_type cell_types
+
+
+signal signals grid
+global_params
+
+
+population_stat population_stats pop_stat pop_stats
+population_function pop_function
+population_gate pop_gate
+population_bgate pop_bgate population_b_gate pop_b_gate
+population_qgate pop_qgate population_q_gate pop_q_gate
+
+timer checkpoint
+cell_placer cells_placer cell_plating cells_plating plating signal_placer signals_placer
+snapshot cells_file out_file cells_plot plot
+
+
+
+
+input inputs output outputs elem elems field fields target
+delta_input ini_value_fun ini_value_dist split_dist split_fun split_rnd 
+intensity_rnd delta_rnd
+
+
+degradation_rnd time_funs times_funs acti_on_fun acti_off_fun dosage_fun
+internal_gate sgate s_gate signals_gate amount_fun amount_rnd threshold_rnd
+
+w_rnd rate_fun vmax_rnd
+fraction_fun p_fun fraction_rnd p_rnd
+rate_fun rate_rnd
+
+donor_gate recipient_gate donor_fun recipient_fun max_rate_rnd neighbours_w_fun neighbours_w_rnd 
+rate_w_fun rate_w_rnd
+
+repli_mutations loss_prob_fun loss_prob_rnd eclipse_fun eclipse_dist copy_num_dist
+division_gate death_gate growth_fun growth_rate_fun growth_rnd growth_rate_rnd
+ini_vol_dist division_vol_dist division_fraction_dist division_rotation_dist 
+
+
+filter_gate 
+amount_dist take_dist put_dist sources_dist 
+pop_fields
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////// ATTRIBUTES ///////////////////////////////ble
+
+name type mode params event_marker event
+
+dist_type params inheritance inertia sampling_time rnd_sampling correction
+operator value rnd_params auto_vol min max precision 
+ini_value ini_value_params scale split split_params split_scale binomial_split volume_split split_marker delay
+rgb intensity intensity_params delta delta_params scale
+
+
+times times_mean time_means times_means times_var time_vars times_vars thresholds symmetric_rnd
+acti_marker acti_on acti_off auto_division dosage dosage_effect 
+activation direction absolute inverted amount amount_params threshold threshold_params threshold_marker
+
+active_marker w w_params has_eclipse eclipse mutation_keys mutations_keys eclipse_marker vmax vmax_params vmax_marker w_marker
+fraction fraction_params p p_params vol_scaling fraction_marker p_marker
+amounts has_eclipse eclipse mutation_probs rate rate_params
+
+vol_scaling max_rate max_rate_params neighbours_w neighbours_w_params max_rate_marker neighbours_w_marker rate_marker
+donor_event recipient_event copy_dependent has_eclipse eclipse rate_w rate_w_params mutation_keys mutations_keys rate_w_marker
+
+repli_mutations_keys repli_mutation_keys repli_mut_keys
+loss_prob loss_prob_params loss_prob_marker eclipse_marker eclipse eclipse_params copy_num copy_num_params
+ 
+growth_rate growth_rate_params growth growth_params death_threshold negative_growth growth_correction
+ini_vol ini_vol_params division_vol division_vol_params division_fraction division_fraction_params division_rotation division_rotation_params
+
+qplasmids_amounts qplasmid_amounts qplasmids_means qplasmid_means qplasmidd_vars qplasmid_vars qplasmids_dists qplasmid_dists qplasmids_as_concs qplasmids_as_conc
+
+
+kdiff kdeg colour color colour_sat color_sat conc_threshold
+unit_size ini_size delta_size
+
+
+theme seed seed_offset step_size sensitivity cells_per_thread max_threads auto_zoom show_plots render_signals batch_mode show_performance
+background cell_outline cell_selected message mouse
+
+stats auto_vol min max precision operator value 
+start stop period is_rnd min_period ignore_start
+message
+
+x y r
+amount amount_params coords cell_probs cells_probs mix mixed
+take take_params put put_params old_coords new_coords
+sources sources_params amount amount_params signal_probs signals_probs 
+
+path folder file_name format
+ancestry include_elems stats precision auto_vol
+colours colors historic_size
