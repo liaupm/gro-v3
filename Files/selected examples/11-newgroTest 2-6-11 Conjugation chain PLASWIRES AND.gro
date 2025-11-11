@@ -26,7 +26,8 @@ pilus([ name := "pil_A"
 ]);
 
 bgate([ name := "ga_andXY", input := { "p_X", "p_Y" } ]);
-pilus([ name := "pil_B", donor_gate := "ga_andXY", max_rate := 0.01 ]);
+pilus([ name := "pil_B", donor_gate := "ga_andXY", recipient_gate := "cell_recipient", max_rate := 0.01 ]);
+
 oriT([ name := "ot_A", pilus := "pil_A" ]);
 oriT([ name := "ot_B", pilus := "pil_B" ]);
 

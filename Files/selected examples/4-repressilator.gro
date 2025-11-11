@@ -61,3 +61,15 @@ plot([ name := "plot_GFP", fields := {"prot_GFP"}, stats := "avg", colours := {"
 plot([ name := "plot_ABC", fields := {"mol_A", "mol_B", "mol_C"}, stats := "avg", colours := {"#00ff00", "#ff0000", "#0000ff"} ]);
 plot([ name := "plot_ABCsum", fields := {"mol_A", "mol_B", "mol_C"}, stats := {"sum"}, colours := {"#00ff00", "#ff0000", "#0000ff"} ]);
 plot([ name := "plot_n", pop_fields := {"_cellnum"} ]);
+
+
+//output
+timer([ name := "t_snap", start := 0.0, stop := 1000.0, period := 1.0 ]);
+
+snapshot([ name := "img_A"
+	, timer := "t_snap"
+	, path := "C:/swLIA/pruebas/repressilatorExample" //modify this path
+	, folder := "gro_images"
+	//, file_name := "a"
+	//, format := ".tif" //".png", ".jpg", ".bmp", ".tif", ".tiff"
+]);
