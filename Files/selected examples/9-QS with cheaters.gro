@@ -1,0 +1,70 @@
+
+include gro3
+
+outLow := { 0.05, 0.0 };
+outHigh := { 0.5, 0.0 };
+qsThreshold := 1.0;
+
+qsNum := 50.0;
+cheaterNum := 10.0;
+
+baseGr := 0.002;
+coopGr := 0.01;
+cheaterGr := 0.02;
+
+ahlDiff := 0.1;
+ahlDeg := 0.008;
+
+global_params([ seed := 4516839, show_plots := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+
+//---gene expression
+molecule([ name := "mol_quorum", times := { -10.0, 5.0 }, times_var := { 0.0, 0.0 } ]);
+molecule([ name := "mol_benefit", times := { -1.0, 1.0 }, times_var := { 0.0, 0.0 } ]);
+
+qgate([ name := "qga_AHL", input := "_conc_s_AHL", operator := ">=", value := qsThreshold ]);
+operon([ name := "op_quorum", gate := "qga_AHL", output := {"mol_quorum"} ]);
+bplasmid([ name := "bp_qs", operons := {"op_quorum"} ]);
+
+
+//---cells
+strain([ name := "str_base", growth_rate := baseGr ]);	
+cell_type([ name := "cell_qs", strain := "str_base", plasmids := {"bp_qs"} ]);
+cell_type([ name := "cell_cheater", strain := "str_base" ]);
+
+
+//---metabolism
+signal([ name := "s_AHL", kdiff := ahlDiff, kdeg := ahlDeg, colour := _cyan, colour_sat := 1.0 ]);
+
+//---
+flux([ name := "flux_out_low", metabolite := "s_AHL", amount := outLow, direction := 1 ]);
+flux([ name := "flux_out_high", metabolite := "s_AHL", gate := "mol_quorum", amount := outHigh ]);
+
+flux([ name := "flux_senseBenefit", metabolite := "s_AHL", output := {"mol_benefit"}, threshold := qsThreshold ]);
+
+bgate([ name := "bga_coop", input := {"mol_quorum", "mol_benefit"} ]);
+flux([ name := "flux_grCheater", signal := "_biomass", gate := "bga_cheat", amount := cheaterGr ]);
+
+bgate([ name := "bga_cheat", input := {"-mol_quorum", "mol_benefit"} ]);
+flux([ name := "flux_grCoop", signal := "_biomass", gate := "bga_coop", amount := coopGr ]);
+
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_qs", cell_types := {"cell_qs"}, amount := qsNum, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_cheater", cell_types := {"cell_cheater"}, amount := cheaterNum, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+
+//------------ VISUALS -----------------------
+bgate([ name := "bga_qsBase", input := {"cell_qs", "-mol_quorum"} ]);
+cell_colour([ name := "ccol_qs", gate := "bga_qsBase", rgb := _blue ]);
+cell_colour([ name := "ccol_cheater", gate := "cell_cheater", rgb := _red ]);
+cell_colour([ name := "ccol_quorum", gate := "mol_quorum", rgb := _green ]);
+
+
+plot([ name := "plot_fractions", fields := {"cell_qs", "cell_cheater"}, stats := "avg" ]);
+plot([ name := "plot_counts", fields := {"cell_qs", "cell_cheater"}, stats := {"sum"} ]);

@@ -1,0 +1,96 @@
+include gro
+
+set_theme(dark_theme);
+set ("dt", 0.1);
+set ("population_max", 2000000);
+set ("signals", 1.0); //0.0: off, 1.0: on
+set ("signals_draw", 1.0);
+grid("continuous", "gro_original", 50, 10, 8);
+
+//========================================================= *params* ===========================================
+signal_emission := "1.0";
+signal_threshold := "1.9";
+
+t_activation := 10.0;
+t_degradation := 20.0;
+var_activation := 0.0;
+var_degradation := 0.0;
+
+diff := 0.001;
+deg := 0.01;
+
+
+//========================================================= *extracellular signals* ===========================================
+sRock := s_signal( [kdiff := diff, kdeg := deg] );
+sPaper := s_signal( [kdiff := diff, kdeg := deg] );
+sScissors := s_signal( [kdiff := diff, kdeg := deg] );
+
+
+//========================================================= *genetic circuits* ====================================
+genes([ name := "opRock"
+		, proteins := {"rock"}
+		, promoter := [ function := "TRUE", transcription_factors := {} ]
+		, prot_act_times := [ times := {t_activation}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation}, variabilities := {var_degradation} ]
+	]);
+
+genes([ name := "opIn"
+		, proteins := {"rockIn", "paperIn", "scissorsIn"}
+		, promoter := [ function := "FALSE", transcription_factors := {} ]
+		, prot_act_times := [ times := {t_activation, t_activation, t_activation}, variabilities := {var_activation, var_activation, var_activation} ]
+		, prot_deg_times := [ times := {t_degradation, t_degradation, t_degradation}, variabilities := {var_degradation, var_degradation, var_degradation } ]
+	]);
+	
+genes([ name := "opPaper"
+		, proteins := {"paper"}
+		, promoter := [ function := "TRUE", transcription_factors := {} ]
+		, prot_act_times := [ times := {t_activation}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation}, variabilities := {var_degradation} ]
+	]);
+
+genes([ name := "opScissors"
+		, proteins := {"scissors"}
+		, promoter := [ function := "TRUE", transcription_factors := {} ]
+		, prot_act_times := [ times := {t_activation}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation}, variabilities := {var_degradation} ]
+	]);
+
+		
+//---------------------------------------------------			
+plasmids_genes ([ pRock := {"opRock"}
+					, pPaper := {"opPaper"}
+					, pScissors := { "opScissors" }
+				]);
+		
+		
+//---------------------------------------------------						
+action( {"rock"}, "s_emit_signal", {tostring(sRock),signal_emission, "exact"} );
+action( {"paper"}, "s_emit_signal", {tostring(sPaper),signal_emission, "exact"} );
+action( {"scissors"}, "s_emit_signal", {tostring(sScissors),signal_emission, "exact"} );
+
+action( {}, "s_get_QS", {tostring(sPaper),">",signal_threshold,"paperIn"} );
+action( {}, "s_get_QS", {tostring(sScissors),">",signal_threshold,"scissorsIn"} );
+action( {}, "s_get_QS", {tostring(sRock),">",signal_threshold,"rockIn"} );
+
+action( {"rock", "paperIn"}, "die" );
+action( {"paper", "scissorsIn"}, "die" );
+action( {"scissors", "rockIn"}, "die" );
+
+action( {"rock"}, "paint", {"0","40","0","25"} );
+action( {"paper"}, "paint", {"0","0","0","100"} );
+action( {"scissors"}, "paint", {"0","0","100","0"} );
+//=============================================== *end of genetic circuits* ====================================
+
+
+program p() := 
+{
+	selected: { die(); }
+    skip();
+};
+
+program main() :=
+{
+   c_ecolis(100,0,0,200, {"pRock"}, program p());
+   c_ecolis(100,0,0,200, {"pPaper"}, program p());
+   c_ecolis(100,0,0,200, {"pScissors"}, program p());
+};

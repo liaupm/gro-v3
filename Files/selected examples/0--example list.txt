@@ -1,0 +1,11 @@
+1-chained operons
+2-chained operons multicellular
+3-toggle switch
+4-repressilator with variability + plots, snapshots
+5-repressilator synchronized
+6-wave
+7-rock-paper-scissors
+8-quorum sensing (basic)
+9-quorum sensing with cheaters
+10-quorum sensing with noise (soft cheaters)
+11-PLASWIRES AND plasmids gate

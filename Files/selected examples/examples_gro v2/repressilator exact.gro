@@ -1,0 +1,81 @@
+include gro
+set_theme(dark_theme);
+
+set ("dt", 0.1);
+set ("population_max", 2000000);
+set ("signals", 1.0); //0.0: off, 1.0: on
+set ("signals_draw", 1.0); //0.0: off, 1.0: on
+set ( "gfp_saturation_max", 200.0 );
+set ( "rfp_saturation_max", 200.0 );
+set ( "cfp_saturation_max", 200.0 );
+grid("continuous", "gro_original", 10, 10, 8);
+
+
+//========================================================= *params* ===========================================
+t_activation_a := 29.0;
+t_degradation_a := 30.0;
+
+t_activation_b := 30.0;
+t_degradation_b := 30.0;
+
+t_activation_c := 30.0;
+t_degradation_c := 30.0;
+
+var_activation := 0.0;
+var_degradation := 0.0;
+
+
+growth_rate := "0.005";
+
+
+
+//========================================================= *genetic circuits* ====================================
+genes([ name := "opA"
+		, proteins := {"A"}
+		, promoter := [ function := "NOT", transcription_factors := {"C"} ]
+		, prot_act_times := [ times := {t_activation_a}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_a}, variabilities := {var_degradation} ]
+	]);
+
+genes([ name := "opB"
+		, proteins := {"B"}
+		, promoter := [ function := "NOT", transcription_factors := {"A"} ]
+
+		, prot_act_times := [ times := {t_activation_b}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_b}, variabilities := {var_degradation} ]
+	]);
+		
+genes([ name := "opC"
+		, proteins := {"C"}
+		, promoter := [ function := "NOT", transcription_factors := {"B"} ]
+
+		, prot_act_times := [ times := {t_activation_c}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_c}, variabilities := {var_degradation} ]
+	]);
+
+
+
+//---------------------------------------------------
+plasmids_genes ([ p0 := {"opA", "opB", "opC"}
+				]);
+
+//---------------------------------------------------
+action( {}, "set_growth_rate", {growth_rate} );
+
+action( {"A"}, "paint", {"1000","0","0","0"} );
+action( {"B"}, "paint", {"0","1000","0","0"} );
+action( {"C"}, "paint", {"0","0","1000","0"} );
+//=============================================== *end of genetic circuits* ====================================
+
+
+
+program p() := 
+{
+	selected: {die()};
+    skip();
+};
+
+program main() :=
+{
+   c_ecolis( 300,0,0,100, {"p0"}, program p() );
+};

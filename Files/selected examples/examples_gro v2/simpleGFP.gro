@@ -1,0 +1,51 @@
+include gro
+set_theme(dark_theme);
+
+set ("dt", 0.1);
+set ("population_max", 2000000);
+set ("signals", 1.0); //0.0: off, 1.0: on
+set ("signals_draw", 1.0); //0.0: off, 1.0: on
+set ( "gfp_saturation_max", 200.0 );
+grid( "continuous", "gro_original", 10, 10, 8 );
+
+
+//========================================================= *params* ===========================================
+t_activation := 100.0;
+t_degradation := 20.0 + t_activation;
+
+t_activation_var := 10.0;
+t_degradation_var := 0.0;
+
+
+//======================================================= *genetic circuits* ===================================
+genes([ name := "opGFP"
+		, proteins := { "GFP" }
+		, promoter := [ function := "TRUE", transcription_factors := {} ]
+		, prot_act_times := [ times := {t_activation}, variabilities := {t_activation_var} ]
+		, prot_deg_times := [ times := {t_degradation}, variabilities := {t_degradation_var} ]
+	]);
+
+
+//--------------------------------------------
+plasmids_genes ([ pGFP := {"opGFP"} ]);
+
+
+//--------------------------------------------
+action( {"GFP"}, "paint", {"500","0","0","0"} );
+action( {"-GFP"}, "paint", {"0","0","0","0"} );
+//action( {"GFP"}, "d_paint", {"1","0","0","0"} );
+//action( {"-GFP"}, "d_paint", {"-1","0","0","0"} );
+//action( {"GFP"}, "set_growth_rate", {"0.0"} );
+//=============================================== *end of genetic circuits* ====================================
+
+
+program p() := 
+{
+	selected: {die()};
+    skip();
+};
+
+program main() :=
+{
+   c_ecolis( 10,0,0,100,{"pGFP"}, program p() );
+};

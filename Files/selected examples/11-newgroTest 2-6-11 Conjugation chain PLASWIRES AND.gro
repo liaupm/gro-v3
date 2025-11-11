@@ -1,0 +1,48 @@
+/*To test chaining several conjugation events using diffeent cell types. It follows the AND computation with plasmids desigened in the PLASWIRES project. 
+Cells X (green) and Y (red) provide the input plasmids "p_X" and "p_Y". "cell_and" turns yellow when it has received both X and Y and then transmits "p_and" to the reporter cell (blue) */
+
+include gro3
+
+global_params([ seed := 123443 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+cell_type([ name := "cell_donorX", strain := "_str_slow", plasmids := {"p_X"} ]);
+cell_type([ name := "cell_donorY", strain := "_str_slow", plasmids := {"p_Y"} ]);
+cell_type([ name := "cell_and", strain := "_str_slow", plasmids := {"p_and"} ]);
+cell_type([ name := "cell_recipient", strain := "_str_slow" ]);
+
+//---plasmids
+plasmid([ name := "p_X", oriTs := {"ot_A"} ]);
+plasmid([ name := "p_Y", oriTs := {"ot_A"} ]);
+plasmid([ name := "p_and", oriTs := {"ot_B"} ]);
+
+//---conjugation
+pilus([ name := "pil_A"
+	//, donor_gate := "cell_donorX"
+	, recipient_gate := "cell_and"
+	, max_rate := 0.01
+]);
+
+bgate([ name := "ga_andXY", input := { "p_X", "p_Y" } ]);
+pilus([ name := "pil_B", donor_gate := "ga_andXY", max_rate := 0.01 ]);
+oriT([ name := "ot_A", pilus := "pil_A" ]);
+oriT([ name := "ot_B", pilus := "pil_B" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_donorX", cell_types := {"cell_donorX"}, amount := 10.0, coords := [ x := -20.0, y := 0.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_donorY", cell_types := {"cell_donorY"}, amount := 10.0, coords := [ x := 20.0, y := 0.0, r := 10.0 ] ]);
+cell_placer([ name := "cp_and", cell_types := {"cell_and"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_recipient", cell_types := {"cell_recipient"}, amount := 50.0, coords := [ x := 0.0, y := 0.0, r := 100.0 ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_green", gate := "p_X", rgb := _green ]);
+cell_colour([ name := "ccol_red", gate := "p_Y", rgb := _red ]);
+cell_colour([ name := "ccol_darkYellow", gate := "cell_and", rgb := _yellow, intensity := 0.3 ]);
+cell_colour([ name := "ccol_darkBlue", gate := "cell_recipient", rgb := _blue, intensity := 0.3 ]);
+bgate([ name := "ga_result", input := {"cell_recipient", "p_and"} ]);
+cell_colour([ name := "ccol_blue", gate := "ga_result", rgb := _blue ]);

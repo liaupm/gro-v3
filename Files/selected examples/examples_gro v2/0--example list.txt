@@ -1,0 +1,14 @@
+1-Simple GFP
+2-GFP y RFP
+3-chained operons
+4-repressilator exact
+5-repressilator variability
+6-medium signals: activator activated by ligand
+7-wave
+8-moving to multicellular: chained operons multicellular
+9-rock-paper-scissors
+10-qs concept
+11-qs cheaters win/lose
+12-sat
+
+Bonus: how to save video and output

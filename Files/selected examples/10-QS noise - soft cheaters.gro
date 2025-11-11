@@ -1,0 +1,133 @@
+/*Simplified and abstracted quorum sensing. The cells must glow at higher concentrations only. The required concentration depends on the emitted amount of AHL signal, the diffusion coafficient and the sensing threshold.
+Randomness in the emission and sensing threshold can slightmy modify the behaviour. Too much noise can make the cells enter quorum state at low densities. 
+*/
+
+include gro3
+
+
+inh := 0.99;
+outLow := { 0.018, 0.0 };
+outHigh := { 0.33, 0.0 };
+qsThreshold := 2.0;
+qsThresholdRnd := { qsThreshold, 0.7 };
+cheatThreshold := qsThreshold + 3.0;
+
+ahlDiff := 0.01;
+ahlDeg := 0.008;
+coordFactor := 800.0;
+coordsR := 100.0;
+cellNum := 25.0;
+
+baseGr := 0.002;
+coopGr := 0.015;
+cheaterGr := 0.02;
+
+
+global_params([ seed := 4516839, show_plots := true, render_signals := true ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+//---cells
+strain([ name := "str_qs", growth_rate := { baseGr, 0.0 } ]);
+cell_type([ name := "cell_rnd", strain := "str_qs" ]);
+cell_type([ name := "cell_inh", strain := "str_qs" ]);
+
+
+
+//---gene expression
+molecule([ name := "mol_quorum", times := { -1.0, 1.0 }, times_var := { 0.0, 0.0 } ]);
+molecule([ name := "mol_benefit", times := { -1.0, 1.0 }, times_var := { 0.0, 0.0 } ]);
+bgate([ name := "bga_coop", input := {"mol_quorum", "mol_benefit"} ]);
+bgate([ name := "bga_cheat", input := {"-mol_quorum", "mol_benefit"} ]);
+
+
+//---metabolism
+signal([ name := "s_AHL", kdiff := ahlDiff, kdeg := ahlDeg, colour := _cyan, colour_sat := 1.0 ]);
+
+//---
+
+flux([ name := "flux_grCheater"
+	, signal := "_biomass"
+	, gate := "bga_cheat"
+	, amount := cheaterGr
+]);
+
+flux([ name := "flux_grCoop"
+	, signal := "_biomass"
+	, gate := "bga_coop"
+	, amount := coopGr
+]);
+
+flux([ name := "flux_out_low", metabolite := "s_AHL", amount := outLow, direction := 1 ]);
+
+flux([ name := "flux_out_high"
+	, metabolite := "s_AHL"
+	, gate := "mol_quorum"
+	, amount := outHigh
+]);
+
+flux([ name := "flux_senseBenefit", metabolite := "s_AHL", output := {"mol_benefit"}, threshold := qsThreshold ]);
+
+randomness([ name := "rnd_rnd", inertia := 1.0, inheritance := 0.0, sampling_time := -1.0 ]);
+flux([ name := "flux_senseRnd", gate := "cell_rnd", threshold_rnd := "rnd_rnd", metabolite := "s_AHL", output := {"mol_quorum"}, threshold := qsThresholdRnd, threshold_marker := "mk_rndThreshold" ]);
+
+randomness([ name := "rnd_inh", inertia := 1.0, inheritance := inh, sampling_time := -1.0 ]);
+randomness([ name := "rnd_inh2", inertia := inh, inheritance := inh, sampling_time := 2.0 ]);
+flux([ name := "flux_senseInh", gate := "cell_inh", threshold_rnd := "rnd_inh", metabolite := "s_AHL", output := {"mol_quorum"}, threshold := qsThresholdRnd, threshold_marker := "mk_inhThreshold" ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_rnd", cell_types := {"cell_rnd"}, amount := cellNum, coords := [ x := -coordFactor, y := 0.0, r := coordsR ] ]);
+cell_placer([ name := "cp_inh", cell_types := {"cell_inh"}, amount := cellNum, coords := [ x := coordFactor, y := 0.0, r := coordsR ] ]);
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_inh", gate := "mol_quorum", rgb := _green, mode := "delta", delta := 0.0025 ]);
+
+cell_colour([ name := "ccol_threshold1", gate := "cell_rnd", rgb := _red, target := "mk_rndThreshold", scale := 0.1 ]);
+cell_colour([ name := "ccol_threshold2", gate := "cell_inh", rgb := _red, target := "mk_inhThreshold", scale := 0.1 ]);
+
+//---
+/*
+pop_stat([ name := "stat_qrnd", gate := "cell_rnd", input := "mol_quorum", stats := "avg" ]);
+pop_stat([ name := "stat_qinh", gate := "cell_inh", input := "mol_quorum", stats := "avg" ]);
+plot([ name := "plot_quorum", pop_fields := { "stat_qrnd", "stat_qinh" }, stats := {"avg"}, historic_size := 20000 ]);
+
+pop_stat([ name := "stat_trnd", gate := "cell_rnd", input := "mk_rndThreshold", stats := "avg" ]);
+pop_stat([ name := "stat_tinh", gate := "cell_inh", input := "mk_inhThreshold", stats := "avg" ]);
+plot([ name := "plot_threshold", pop_fields := { "stat_trnd", "stat_tinh" }, historic_size := 20000 ]);
+
+out_file([ name := "file_qsquorum"
+	, timer := "_t_every_step"
+	, pop_fields := { "stat_qrnd", "stat_qinh"}
+	, mode := "population"
+	, path := "C:/swLIA/pruebas/newGro3/qsnoise" 
+	, folder := "gro_output"
+	, file_name := "quorum"
+	, format := ".csv" //".csv", ".tsv"
+	, precision := 8
+]);
+
+out_file([ name := "file_qsthreshold"
+	, timer := "_t_every_step"
+	, pop_fields := { "stat_trnd", "stat_tinh"}
+	, mode := "population"
+	, path := "C:/swLIA/pruebas/newGro3/qsnoise" 
+	, folder := "gro_output"
+	, file_name := "threshold"
+	, format := ".csv" //".csv", ".tsv"
+	, precision := 8
+]);
+*/
+
+timer([ name := "t_snap", start := 100.0, stop := 1350.0, period := 0.2 ]);
+snapshot([ name := "img_qs"
+	, timer := "t_snap"
+	, path := "C:/swLIA/pruebas/newGro3/qsnoise" 
+	, folder := "gro_snapshots"
+	, file_name := "qs"
+	, format := ".png" //".png", ".jpg", ".bmp", ".tif", ".tiff"
+]);
+
+//plot([ name := "plot_cellNum", fields := { "cell_rnd", "cell_inh" } ]);

@@ -1,0 +1,98 @@
+include gro
+set_theme(dark_theme);
+
+set ("dt", 0.1);
+set ("population_max", 2000000);
+set ("signals", 1.0); //0.0: off, 1.0: on
+set ("signals_draw", 1.0); //0.0: off, 1.0: on
+grid("continuous", "gro_original", 50, 10, 8);
+
+//========================================================= *params* ===========================================
+t_activation_var := 50.0;
+t_degradation_var := 10.0;
+
+t_activation_x := 0.1;
+t_degradation_x := 10.0;
+
+var_activation := 50.0;
+var_degradation := 10.0;
+
+
+//========================================================= *genetic circuits* ====================================
+genes([ name := "op1a"
+		, proteins := {"a"}
+		, promoter := [ function := "NOT", transcription_factors := {"b"} ]
+		, prot_act_times := [ times := {t_activation_var}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_var}, variabilities := {var_degradation} ]
+	]);
+
+genes([ name := "op1b"
+		, proteins := {"b"}
+		, promoter := [ function := "NOT", transcription_factors := {"a"} ]
+		, prot_act_times := [ times := {t_activation_var}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_var}, variabilities := {var_degradation} ]
+	]);
+
+genes([ name := "op2noa"
+		, proteins := {"noa"}
+		, promoter := [ function := "NOT", transcription_factors := {"nob"} ]
+		, prot_act_times := [ times := {t_activation_var}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_var}, variabilities := {var_degradation} ]
+	]);
+	
+genes([ name := "op2nob"
+		, proteins := {"nob"}
+		, promoter := [ function := "NOT", transcription_factors := {"noa"} ]
+		, prot_act_times := [ times := {t_activation_var}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_var}, variabilities := {var_degradation} ]
+	]);
+	
+genes([ name := "opXa"
+		, proteins := {"x"}
+		, promoter := [ function := "AND", transcription_factors := {"a", "noa"} ]
+		, prot_act_times := [ times := {t_activation_x}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_x}, variabilities := {var_degradation} ]
+	]);	
+
+genes([ name := "opXb"
+		, proteins := {"x"}
+		, promoter := [ function := "AND", transcription_factors := {"b", "nob"} ]
+		, prot_act_times := [ times := {t_activation_x}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_x}, variabilities := {var_degradation} ]
+	]);	
+	
+	
+//----------------------------------------
+plasmids_genes ([ p1 := {"op1a", "op1b"}
+					, p2 := {"op2noa", "op2nob"}
+					, pX := { "opXa", "opXb" }
+				]);
+				
+				
+//----------------------------------------
+/*action( {"a", "noa"}, "paint", {"0","500","0","0"} );
+action( {"a", "nob"}, "paint", {"500","0","0","0"} );
+action( {"b", "noa"}, "paint", {"0","0","0","500"} );
+action( {"b", "nob"}, "paint", {"0","0","500","0"} ); */
+
+action( {"-x"}, "paint", {"500","0","0","0"} );
+action( {"x"}, "paint", {"0","500","0","0"} );
+action( {"-a", "-b"}, "paint", {"0","0","0","0"} );
+action( {"-noa", "-nob"}, "paint", {"0","0","0","0"} );
+
+//action( {"x"}, "die", {} );
+//action( {}, "set_growth_rate", {"0.005"} );
+//=============================================== *end of genetic circuits* ====================================
+
+
+
+program p() := 
+{
+	selected: {die()}
+    skip();
+};
+
+program main() :=
+{
+   c_ecolis(100,0,0,100, {"p1","p2","pX"}, program p());
+};

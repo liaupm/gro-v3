@@ -1,0 +1,98 @@
+include gro
+set_theme(dark_theme);
+
+set ("dt", 0.1);
+set ("population_max", 2000000);
+set ("signals", 1.0); //0.0: off, 1.0: on
+set ("signals_draw", 1.0); //0.0: off, 1.0: on
+set ( "gfp_saturation_max", 200.0 );
+grid("continuous", "gro_original", 10, 10, 8);
+
+
+//========================================================= *params* ===========================================
+t_activation_x := 20.0;
+t_degradation_x := 20.0;
+
+t_activation_y := 20.0;
+t_degradation_y := 20.0;
+
+t_activation_r := 0.0;
+t_degradation_r := 20.0;
+
+t_activation_gfp := 20.0;
+t_degradation_gfp := 20.0;
+
+var_activation := 0.0;
+var_degradation := 0.0;
+
+
+//========================================================= *genetic circuits* ====================================
+genes([ name := "opX"
+		, proteins := {"X"}
+		, promoter := [ function := "TRUE", transcription_factors := {} ]
+		, prot_act_times := [ times := {t_activation_x}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_x}, variabilities := {var_degradation} ]
+	]);
+
+genes([ name := "opY"
+		, proteins := {"Y"}
+		, promoter := [ function := "TRUE", transcription_factors := {} ]
+		, prot_act_times := [ times := {t_activation_y}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_y}, variabilities := {var_degradation} ]
+	]);
+		
+		
+genes([ name := "opR1"
+		, proteins := {"R"}
+		, promoter := [ function := "NOT", transcription_factors := {"X"} ]
+		, prot_act_times := [ times := {t_activation_r}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_r}, variabilities := {var_degradation} ]
+	]);
+		
+genes([ name := "opR2"
+		, proteins := {"R"}
+		, promoter := [ function := "NOT", transcription_factors := {"Y"} ]
+		, prot_act_times := [times := {t_activation_r}, variabilities := {var_activation}]
+		, prot_deg_times := [times := {t_degradation_r}, variabilities := {var_degradation}]
+	]);
+
+		
+genes([ name := "opGFP"
+		, proteins := {"GFP"}
+		, promoter := [ function := "NOT", transcription_factors := {"R"} ]
+		, prot_act_times := [ times := {t_activation_gfp}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_gfp}, variabilities := {var_degradation} ]
+	]);
+
+
+
+//--------------------------------------------
+plasmids_genes ([ pX := {"opX"}
+					, pY := {"opY"}
+					, p2 := { "opR1", "opR2", "opGFP" }
+				]);
+
+
+//--------------------------------------------
+action( {"GFP"}, "d_paint", {"1","0","0","0"} );
+action( {"-GFP"}, "d_paint", {"-1","0","0","0"} );
+
+//action( {"GFP"}, "set_growth_rate", {"0.005"} );
+
+//=============================================== *end of genetic circuits* ====================================
+
+
+
+program p() := 
+{
+	selected: {die()};
+    skip();
+};
+
+program main() :=
+{
+   c_ecolis( 10,-300,-300,100, {"pX","p2"}, program p() );
+   c_ecolis( 10,-300,300,100, {"p2"}, program p() );
+   c_ecolis( 10,300,-300,100, {"pY", "p2"}, program p() );
+   c_ecolis( 10,300,300,100, {"pX", "pY", "p2"}, program p() );
+};

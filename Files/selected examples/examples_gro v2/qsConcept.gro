@@ -1,0 +1,65 @@
+include gro
+
+set_theme(dark_theme);
+set ("dt", 0.1);
+set ("population_max", 2000000);
+set ("signals", 1.0); //0.0: off, 1.0: on
+set ("signals_draw", 1.0);
+set ( "yfp_saturation_max", 200.0 );
+grid("continuous", "gro_original", 50, 10, 8);
+
+
+//========================================================= *params* ===========================================
+t_activation_luxI := 20.0;
+t_degradation_luxI := 20.0;
+var_activation := 0.0;
+var_degradation := 0.0;
+
+ai_out_low := "0.01";
+ai_out_high := "1.0";
+ai_in_threshold := "0.5";
+
+diff := 0.1;
+deg := 0.1;
+
+
+//========================================================= *extracellular signals* ===========================================
+sAi := s_signal([kdiff := diff, kdeg := deg]); // autoinductor
+
+
+//========================================================= *genetic circuits* ====================================
+genes([ name := "opLuxI"
+		, proteins := {"luxI"}
+		, promoter := [ function := "YES", transcription_factors := {"ai"} ]
+		, prot_act_times := [ times := {t_activation_luxI}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_luxI}, variabilities := {var_degradation} ]
+	]);
+
+
+//---------------------------------------------------
+plasmids_genes ([ pLuxI := {"opLuxI"}
+				]);
+
+
+//---------------------------------------------------
+action( {}, "set_growth_rate", {"0.001"} );
+action( {"luxI"}, "d_paint", {"0","0","1","0"} );
+action( {"-luxI"}, "d_paint", {"0","0","-1","0"} );
+
+action( {"-luxI"}, "s_emit_signal", {tostring(sAi),ai_out_low, "exact"} );
+action( {"luxI"}, "s_emit_signal", {tostring(sAi),ai_out_high, "exact"} );
+action( {}, "s_get_QS", {tostring(sAi),">",ai_in_threshold,"ai"} );
+//=============================================== *end of genetic circuits* ====================================
+
+
+program p() := 
+{
+	selected: {die()};
+    skip();
+};
+
+program main() :=
+{
+   c_ecolis( 10,-250,0,100, {"pLuxI"}, program p() );
+   c_ecolis( 200,250,0,100, {"pLuxI"}, program p() );
+};

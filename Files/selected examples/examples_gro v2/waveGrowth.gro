@@ -1,0 +1,70 @@
+include gro
+
+set_theme(dark_theme);
+set ("dt", 0.1);
+set ("population_max", 2000000);
+set ("signals", 1.0); //0.0: off, 1.0: on
+set ("signals_draw", 1.0);
+grid("continuous", "gro_original", 50, 10, 8);
+
+
+//========================================================= *params* ===========================================
+t_activation_wait := 10.0;
+t_degradation_wait := 0.1;
+
+var_activation := 0.0;
+var_degradation := 0.0;
+
+growth_rate := "0.005";
+
+s0_out_emit := "10.0";
+s0_in_threshold := "10.1";
+
+diff := 1.5;
+deg := 0.8;
+
+signal_x := 100.0;
+signal_y := 100.0;
+
+
+//========================================================= *extracellular signals* ===========================================
+s0 := s_signal([kdiff := diff, kdeg := deg]);
+
+
+
+//========================================================= *genetic circuits* ====================================
+genes([ name := "opWait"
+		, proteins := {"wait"}
+		, promoter := [ function := "YES", transcription_factors := {"s0"} ]
+		, prot_act_times := [ times := {t_activation_wait}, variabilities := {var_activation} ]
+		, prot_deg_times := [ times := {t_degradation_wait}, variabilities := {var_degradation} ]
+	]);
+		
+		
+//-----------------------------------------
+plasmids_genes ([ pWave := {"opWait"}
+				]);
+					
+
+//-----------------------------------------
+action( {"wait"}, "d_paint", {"1","0","0","0"} );
+action( {"-wait"}, "d_paint", {"-1","0","0","0"} );
+action( {}, "set_growth_rate", {growth_rate} );
+
+action( {"s0", "-wait"}, "s_emit_signal", {tostring(s0),s0_out_emit, "exact"} );
+action( {}, "s_get_QS", {tostring(s0),">",s0_in_threshold,"s0"} );
+//=============================================== *end of genetic circuits* ====================================
+
+
+
+program p() := 
+{
+	selected: {die()};
+    skip();
+};
+
+program main() :=
+{
+	true: { s_set_signal( 0, 500.0, signal_x, signal_y ); }
+   c_ecolis( 100,0,0,100, {"pWave"}, program p() );
+};

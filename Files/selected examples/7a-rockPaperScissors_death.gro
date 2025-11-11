@@ -1,0 +1,53 @@
+include gro3
+
+//params
+rock_emission := 10.0;
+rock_threshold := 5.0;
+paper_emission := 10.0;
+paper_threshold := 5.0;
+scissors_emission := 10.0;
+scissors_threshold := 5.0;
+
+diff := 0.1;
+deg := 0.01;
+
+global_params([ seed := 133087 ]);
+
+
+
+//----------------------BIOCIRCUITS---------------------------
+strain([ name := "str_rock", death_gate := "qga_paper", death_threshold := 100.0 ]);	
+strain([ name := "str_paper", death_gate := "qga_scissors", death_threshold := 100.0 ]);	
+strain([ name := "str_scissors", death_gate := "qga_rock", death_threshold := 100.0 ]);	
+
+cell_type([ name := "cell_rock", strain := "str_rock" ]);
+cell_type([ name := "cell_paper", strain := "str_paper" ]);
+cell_type([ name := "cell_scissors", strain := "str_scissors" ]);
+
+
+//intercellular communication
+signal([ name := "s_rock", kdiff := diff, kdeg := deg, colour := _magenta, colour_sat := 20.0 ]);
+signal([ name := "s_paper", kdiff := diff, kdeg := deg, colour := _cyan, colour_sat := 20.0 ]);
+signal([ name := "s_scissors", kdiff := diff, kdeg := deg, colour := _yellow, colour_sat := 20.0 ]);
+
+flux([ name := "flux_rock_out", signal := "s_rock", gate := "cell_rock", amount := rock_emission ]);
+flux([ name := "flux_paper_out", signal := "s_paper", gate := "cell_paper", amount := paper_emission ]);
+flux([ name := "flux_scissors_out", signal := "s_scissors", gate := "cell_scissors", amount := scissors_emission ]);
+
+qgate([ name := "qga_rock", input := "_conc_s_rock", value := rock_threshold ]);
+qgate([ name := "qga_paper", input := "_conc_s_paper", value := paper_threshold ]);
+qgate([ name := "qga_scissors", input := "_conc_s_scissors", value := scissors_threshold ]);
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_rock", cell_types := {"cell_rock"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 200.0 ] ]);
+cell_placer([ name := "cp_paper", cell_types := {"cell_paper"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 200.0 ] ]);
+cell_placer([ name := "cp_scissors", cell_types := {"cell_scissors"}, amount := 100.0, coords := [ x := 0.0, y := 0.0, r := 200.0 ] ]);
+	
+
+
+//------------ VISUALS -----------------------
+cell_colour([ name := "ccol_rock", gate := "cell_rock", rgb := _magenta, intensity := 0.7 ]);
+cell_colour([ name := "ccol_paper", gate := "cell_paper", rgb := _cyan, intensity := 0.7 ]);
+cell_colour([ name := "ccol_scissors", gate := "cell_scissors", rgb := _yellow, intensity := 0.7 ]);

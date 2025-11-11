@@ -1,0 +1,65 @@
+include gro3
+
+//params
+t_activation_x := 20.0;
+t_degradation_x := 20.0;
+
+t_activation_y := 20.0;
+t_degradation_y := 20.0;
+
+t_activation_r := 0.0;
+t_degradation_r := 20.0;
+
+t_activation_gfp := 20.0;
+t_degradation_gfp := 20.0;
+
+var_activation := 0.0;
+var_degradation := 0.0;
+
+global_params([ seed := 133087 ]);
+
+
+//----------------------BIOCIRCUITS---------------------------
+molecule([ name := "mol_X", times := {-t_degradation_x, t_activation_x }, times_var := { var_degradation, var_activation } ]);
+molecule([ name := "mol_Y", times := {-t_degradation_y, t_activation_y }, times_var := { var_degradation, var_activation } ]);
+molecule([ name := "mol_R", times := {-t_degradation_r, t_activation_r }, times_var := { var_degradation, var_activation } ]);
+molecule([ name := "mol_GFP", times := {-t_degradation_gfp, t_activation_gfp }, times_var := { var_degradation, var_activation } ]);
+
+
+operon([ name := "op_X", output := {"mol_X"} ]);
+operon([ name := "op_Y", output := {"mol_Y"} ]);
+
+bgate([ name := "ga_notX", input := {"-mol_X"} ]);
+operon([ name := "op_R1", gate := "ga_notX", output := {"mol_R"} ]);
+
+bgate([ name := "ga_notY", type := "NOT", input := {"mol_Y"} ]);
+operon([ name := "op_R2", gate := "ga_notY", output := {"mol_R"} ]);
+
+bgate([ name := "ga_notR", type := "NOT", input := {"mol_R"} ]);
+operon([ name := "op_GFP", gate := "ga_notR", output := {"mol_GFP"} ]);
+		
+
+plasmid([ name := "p_X", operons := { "op_X" } ]);
+plasmid([ name := "p_Y", operons := { "op_Y" } ]);
+plasmid([ name := "p_2", operons := { "op_R1", "op_R2", "op_GFP" } ]);
+
+
+cell_type([ name := "cell_0", plasmids := { "p_2" } ]);
+cell_type([ name := "cell_X", plasmids := { "p_X", "p_2" } ]);
+cell_type([ name := "cell_Y", plasmids := { "p_Y", "p_2" } ]);
+cell_type([ name := "cell_XY", plasmids := { "p_X", "p_Y", "p_2" } ]);
+
+
+
+//------------ WORLD CONTROL -----------------------
+//---placers
+cell_placer([ name := "cp_0", cell_types := {"cell_0"}, amount := 10.0, coords := [ x := -300.0, y := 300.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_X", cell_types := {"cell_X"}, amount := 10.0, coords := [ x := -300.0, y := -300.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_Y", cell_types := {"cell_Y"}, amount := 10.0, coords := [ x := 300.0, y := -300.0, r := 100.0 ] ]);
+cell_placer([ name := "cp_XY", cell_types := {"cell_XY"}, amount := 10.0, coords := [ x := 300.0, y := 300.0, r := 100.0 ] ]);
+
+
+
+//------------ VISUALS -----------------------
+//cell_colour([ name := "ccol_green", gate := "mol_GFP", rgb := _green ]);
+cell_colour([ name := "ccol_g", gate := "mol_GFP", mode := "delta", rgb := _green, delta := { 0.05, 0.0 } ]);
